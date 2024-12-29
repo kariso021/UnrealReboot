@@ -37,20 +37,42 @@ void AAIC_EnemyBaseCPP::OnPossess(APawn* InPawn)
 	AEnemyBase* EnemyBase = Cast<AEnemyBase>(InPawn);
 	if (EnemyBase && EnemyBase->BehaviorTree)
 	{
-		//  IDamageableInterface* owner_dmg_interface = Cast<IDamageableInterface>(GetOwner());
-		IEnemyAIInterface* target_ai_interface = Cast<IEnemyAIInterface>(InPawn);
-		float AttackRadius=target_ai_interface->GetIdealRange().AttackRadius;
-		float DefendRadius = target_ai_interface->GetIdealRange().DefendRadius;
+		// Behavior Tree 실행
+		if (!RunBehaviorTree(EnemyBase->BehaviorTree))
+		{
+			UE_LOG(LogTemp, Error, TEXT("Failed to run Behavior Tree!"));
+			return;
+		}
 
-		RunBehaviorTree(EnemyBase->BehaviorTree);
+		// Blackboard 초기화
+		BlackboardComp = GetBlackboardComponent();
+		if (!BlackboardComp)
+		{
+			UE_LOG(LogTemp, Error, TEXT("Failed to initialize Blackboard Component!"));
+			return;
+		}
+
+		// AI Interface를 통해 필요한 데이터를 가져옴
+		IEnemyAIInterface* TargetAIInterface = Cast<IEnemyAIInterface>(InPawn);
+		if (TargetAIInterface)
+		{
+			float AttackRadius = TargetAIInterface->GetIdealRange().AttackRadius;
+			float DefendRadius = TargetAIInterface->GetIdealRange().DefendRadius;
+
+			// Blackboard에 데이터 설정
+			BlackboardComp->SetValueAsFloat(AttackRadiusKeyName, AttackRadius);
+			BlackboardComp->SetValueAsFloat(DefendRadiusKeyName, DefendRadius);
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Failed to cast InPawn to IEnemyAIInterface!"));
+		}
+
+		// 초기 상태 설정
 		SetStateAsPassive();
 
-		BlackboardComp->SetValueAsFloat(AttackRadiusKeyName,AttackRadius);
-		BlackboardComp->SetValueAsFloat(DefendRadiusKeyName, DefendRadius);
-
+		// 주기적으로 CheckForgottenSeenActor 호출
 		GetWorldTimerManager().SetTimer(CheckForgottenActorsTimer, this, &AAIC_EnemyBaseCPP::CheckForgottenSeenActor, 0.5f, true);
-
-
 	}
 	else
 	{

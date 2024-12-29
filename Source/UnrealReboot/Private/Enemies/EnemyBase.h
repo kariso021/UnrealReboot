@@ -135,8 +135,12 @@ public:
 
 
 protected:
-    UPROPERTY()
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
     UWidgetComponent* HealthBarComp;
+
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+    TSubclassOf<UUserWidget> HealthBarWidgetClass;
 
     UPROPERTY()
     UCP_Attacks* AttackComponent;//<- 포인터 안쓰면 가비지 컬렉터 오류 난다. 여기 말고 protect로 base 에 쓰는게?

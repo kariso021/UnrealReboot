@@ -8,7 +8,24 @@ UDamageSystem::UDamageSystem()
 {
 	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
 	// off to improve performance if you don't need them.
+
+	HealthCPP = 100.0f;
+	MaxHealthCPP = 100.0f;
+
+	IsInvincibleCPP = false;
+	IsDeadCPP = false;
+	IsInterruptibleCPP = true;
+	IsBlockingCPP = false;
+
+	AttackTokensCountCPP = 0;
+
+
 	PrimaryComponentTick.bCanEverTick = true;
+
+
+
+
+
 
 	// ...
 }

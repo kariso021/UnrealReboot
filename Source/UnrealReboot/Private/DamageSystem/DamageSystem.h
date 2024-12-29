@@ -8,7 +8,7 @@
 #include "DamageSystem.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnBlockedDelegate, bool, bCanBeParried, AActor*, DamageCauser);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnDamageResponseDelgate, EM_DamageResponse, DamageResponse, AActor*, DamageCauser);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnDamageResponseDelegate, EM_DamageResponse, DamageResponse, AActor*, DamageCauser);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDeathDelegate);
 
 
@@ -70,7 +70,7 @@ public:
 	FOnBlockedDelegate OnBlocked;
 
 	UPROPERTY(BlueprintAssignable, Category = "Combat")
-	FOnDamageResponseDelgate OnDamageResponse;
+	FOnDamageResponseDelegate OnDamageResponse;
 
 	UPROPERTY(BlueprintAssignable, Category = "Combat")
 	FOnDeathDelegate OnDeath;
@@ -90,7 +90,6 @@ private:
 
 	float HealthCPP;
 	float MaxHealthCPP;
-
 	bool IsInvincibleCPP;
 	bool IsDeadCPP;
 	bool IsInterruptibleCPP;

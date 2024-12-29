@@ -10,6 +10,15 @@ AEnemyBase::AEnemyBase()
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
+
+
+	//Create an HealthBar Component and Attatch to Mesh component
+	HealthBarComp = CreateDefaultSubobject<UWidgetComponent>(TEXT("HealthBar"));
+	HealthBarComp->SetupAttachment(GetMesh()); // Mesh에 바로 부착
+	//HealthBarComp->SetRelativeLocation(FVector(0.0f, 0.0f, 100.0f)); // 머리 위로 위치 조정
+	//HealthBarComp->SetWidgetSpace(EWidgetSpace::Screen); // 화면 공간에 표시
+	//HealthBarComp->SetDrawSize(FVector2D(200.0f, 50.0f)); // 헬스바 크기 설정
+
 	AttackComponent = CreateDefaultSubobject<UCP_Attacks>(TEXT("AttackComponent"));
 	DamageSystemComponent = CreateDefaultSubobject<UDamageSystem>(TEXT("DamageSystemComponent"));
 	DamageSystemComponent->SetMaxhealth(100);
@@ -29,20 +38,25 @@ void AEnemyBase::BeginPlay()
 		//Delegate 이용 Function Pointer 랑 비슷한 개념 아닌가?
 
 
+
+		//--------------------------Helath Bar 잠깐 비활성화-------------------------------------------
 		if (HealthBarComp && HealthBarComp->GetUserWidgetObject() == nullptr)
 		{
-			UWD_HealthBar* HealthBarWidget = CreateWidget<UWD_HealthBar>(GetWorld(), UWD_HealthBar::StaticClass());
-			if (HealthBarWidget)
+			if (HealthBarComp->GetUserWidgetObject() == nullptr)
 			{
-				HealthBarWidget->SetDamageableActor(this);
-				
-				HealthBarComp->SetWidget(HealthBarWidget);//HelathBarComp 를 HealthBarWidget의 Component로 지정해주는것
+				UUserWidget* HealthBarWidget = CreateWidget<UUserWidget>(GetWorld(), HealthBarWidgetClass);
+				if (HealthBarWidget)
+				{
+					HealthBarComp->SetWidget(HealthBarWidget);
+				}
 			}
+
+			HealthBarComp->SetVisibility(true);
 		}
 		HealthBarComp->SetVisibility(true);//Propagate To Children  자동화(Protect 로 Comp 선언했음)
 	
-		DamageSystemComponent->OnDeath.AddDynamic(this, &AEnemyBase::Die);//죽는거 먼저 체크
-		DamageSystemComponent->OnDamageResponse.AddDynamic(this, &AEnemyBase::HitResponse);
+			DamageSystemComponent->OnDeath.AddDynamic(this, &AEnemyBase::Die);
+			DamageSystemComponent->OnDamageResponse.AddDynamic(this, &AEnemyBase::HitResponse);
 		
 
 	}
