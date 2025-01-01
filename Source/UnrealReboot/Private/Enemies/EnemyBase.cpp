@@ -2,7 +2,7 @@
 
 
 #include "Enemies/EnemyBase.h"
-#include "AIC_EnemyBaseCPP.h"
+#include "AI/AIC_EnemyBaseCPP.h"
 
 // Sets default values
 AEnemyBase::AEnemyBase()

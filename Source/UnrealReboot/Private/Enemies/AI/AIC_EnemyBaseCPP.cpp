@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 //#AIC_EnemyBaseCPP.cpp
-#include "Enemies/AIC_EnemyBaseCPP.h"
+#include "Enemies/AI/AIC_EnemyBaseCPP.h"
 #include "DamageSystem/DamageableInterface.h"
 #include "Enemies/EnemyBase.h"
 
