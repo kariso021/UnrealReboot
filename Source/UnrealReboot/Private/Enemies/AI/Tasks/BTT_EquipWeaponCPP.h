@@ -14,4 +14,14 @@ class UBTT_EquipWeaponCPP : public UBTTaskNode
 {
 	GENERATED_BODY()
 	
+protected:
+	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
+
+private:
+
+	UFUNCTION()
+	void OnWeaponEquipped();
+
+	UBehaviorTreeComponent* CachedOwnerComp;
+	class AEnemyBase* EnemyBase;
 };

@@ -4,13 +4,13 @@
 
 #include "CoreMinimal.h"
 #include "BehaviorTree/BTDecorator.h"
-#include "BTD_IsWeildingWeapon.generated.h"
+#include "BTD_IsWeildingWeaponCPP.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class UBTD_IsWeildingWeapon : public UBTDecorator
+class UBTD_IsWeildingWeaponCPP : public UBTDecorator
 {
 	GENERATED_BODY()
 	

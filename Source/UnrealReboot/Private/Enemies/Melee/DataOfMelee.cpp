@@ -3,10 +3,3 @@
 
 #include "Enemies/Melee/DataOfMelee.h"
 
-DataOfMelee::DataOfMelee()
-{
-}
-
-DataOfMelee::~DataOfMelee()
-{
-}

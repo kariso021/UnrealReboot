@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Perception/AISense.h"
 #include "Perception/AIPerceptionTypes.h"
+#include "Engine/UserDefinedEnum.h"
 #include "DataOfEnemies.generated.h"
 
 UENUM(BlueprintType)

@@ -14,4 +14,9 @@ class UBTT_ClearFocusCPP : public UBTTaskNode
 {
 	GENERATED_BODY()
 	
+public:
+	UBTT_ClearFocusCPP();
+
+protected:
+	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 };

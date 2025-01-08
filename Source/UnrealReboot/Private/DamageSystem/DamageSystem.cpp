@@ -60,14 +60,14 @@ float UDamageSystem::HealCPP(float Amount)
 
 bool UDamageSystem::TakeDamageCPP(const FDamageInfo& DamageInfo, AActor* DamageCauser)
 {
-	if (CanBeDamaged(DamageInfo.ShouldDamageInvincible, DamageInfo.SCanBeBlocked) == 0)
+	if (CanBeDamaged(DamageInfo.ShouldDamageInvincible, DamageInfo.CanBeBlocked) == 0)
 	{
 		//Block Damage
 		OnBlocked.Broadcast(DamageInfo.CanBeParried, DamageCauser);
 		return false;
 
 	}
-	else if (CanBeDamaged(DamageInfo.ShouldDamageInvincible, DamageInfo.SCanBeBlocked) == 1)
+	else if (CanBeDamaged(DamageInfo.ShouldDamageInvincible, DamageInfo.CanBeBlocked) == 1)
 	{
 		//Do Damage
 		HealthCPP = HealthCPP - DamageInfo.Amount;
@@ -91,7 +91,7 @@ bool UDamageSystem::TakeDamageCPP(const FDamageInfo& DamageInfo, AActor* DamageC
 			}
 		}
 	}
-	else if (CanBeDamaged(DamageInfo.ShouldDamageInvincible, DamageInfo.SCanBeBlocked) == 2)
+	else if (CanBeDamaged(DamageInfo.ShouldDamageInvincible, DamageInfo.CanBeBlocked) == 2)
 	{
 		//No Damage
 		return false;

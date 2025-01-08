@@ -93,7 +93,7 @@ public:
 
  //--------------------------------------------------Public Source------------------------
     //like Bt, or Team Number
-    UPROPERTY()
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Team")
     int TeamNumber;
 
 

@@ -44,7 +44,7 @@ public:
     bool ShouldDamageInvincible;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damage Info")
-    bool SCanBeBlocked;
+    bool CanBeBlocked;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damage Info")
     bool CanBeParried;
