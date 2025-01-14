@@ -10,7 +10,7 @@
  * 
  */
 UCLASS()
-class UBTT_Boss_Attack_CPP : public UBTTask_BlackboardBase
+class UBTT_Boss_Attack_CPP : public UBTTaskNode
 {
 	GENERATED_BODY()
 	

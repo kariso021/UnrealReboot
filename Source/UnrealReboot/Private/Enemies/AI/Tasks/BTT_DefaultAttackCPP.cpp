@@ -9,6 +9,7 @@
 
 UBTT_DefaultAttackCPP::UBTT_DefaultAttackCPP()
 {
+   
 }
 
 EBTNodeResult::Type UBTT_DefaultAttackCPP::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)

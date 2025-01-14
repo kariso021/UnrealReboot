@@ -3,15 +3,23 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "BehaviorTree/Services/BTService_BlackboardBase.h"
+#include "BehaviorTree/BTService.h"
 #include "BTS_StopAttackingIfTargetIsDeadC.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class UBTS_StopAttackingIfTargetIsDeadC : public UBTService_BlackboardBase
+class UBTS_StopAttackingIfTargetIsDeadC : public UBTService
 {
 	GENERATED_BODY()
 	
+protected:
+	virtual void TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
+
+private:
+
+	/** 공격 목표 키 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Default", meta = (AllowPrivateAccess = "true", DisplayName = "Attack Target Key"))
+	FBlackboardKeySelector AttackTargetKey;
 };

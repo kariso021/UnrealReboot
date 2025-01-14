@@ -13,5 +13,9 @@ UCLASS()
 class UBTD_IsWieldingSwordCPP : public UBTDecorator
 {
 	GENERATED_BODY()
+
+protected:
+	virtual bool CalculateRawConditionValue(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) const override;
+
 	
 };

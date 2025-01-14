@@ -13,5 +13,13 @@ UCLASS()
 class UBTT_SetIsInterruptibleCPP : public UBTTaskNode
 {
 	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, Category = "Value")
+	bool Value = false;
+
+
+protected:
+	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
+
 	
 };

@@ -13,5 +13,7 @@ UCLASS()
 class UBTD_HasPatrolRouteCPP : public UBTDecorator
 {
 	GENERATED_BODY()
+
+	virtual bool CalculateRawConditionValue(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) const override;
 	
 };

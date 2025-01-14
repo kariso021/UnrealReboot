@@ -13,5 +13,11 @@ UCLASS()
 class UBTD_IsHealthBelowThresholdCPP : public UBTDecorator
 {
 	GENERATED_BODY()
+
+protected:
+	virtual bool CalculateRawConditionValue(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) const override;
+
+	UPROPERTY(EditAnywhere, Category = "AI")
+	float HealthThreshold = 50.0f; // ±âº»°ª
 	
 };

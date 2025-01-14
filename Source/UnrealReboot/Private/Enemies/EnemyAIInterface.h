@@ -18,44 +18,62 @@ class UEnemyAIInterface : public UInterface
 };
 
 /**
- * 
+ *
  */
 class IEnemyAIInterface
 {
 	GENERATED_BODY()
 
-	// Add interface functions to this class. This is the class that will be inherited to implement this interface.
 public:
-	UFUNCTION()
-	virtual float SetMovementSpeed(EM_MovementSpeed Speed);//Enum이 들어가야함 Return 으로 Speed 받으면 됨
+	// Movement Speed 설정 (Enum 사용)
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "AI")
+	float SetMovementSpeed(EM_MovementSpeed Speed);
 
-	UFUNCTION()
-	virtual FRangeofState GetIdealRange();//두가지 종류의 Range 가 필요함 Return 의 형태로 FRangeofState
-
-	UFUNCTION()
-	virtual void EquipWeapon ();
-
-	UFUNCTION()
-	virtual void UnequipWeapon();
-
-	UFUNCTION()
-	virtual void Attack(AActor* AttackTarget);
-
-	UFUNCTION()
-	virtual void JumpToDestination(FVector Destination);
-
-	UFUNCTION()
-	virtual bool AttackStart(AActor* AttackTarget,int TokenNeeded);
-
-	UFUNCTION()
-	virtual void AttackEnd(AActor* AttackTarget);
-
-	UFUNCTION()
-	virtual void StoreAttackToken(AActor* AttackTarget,int Amount);
-
-	UFUNCTION()
-	virtual APatrolRoute* GetPatrolRoute();
+	//// 이상적인 Range 가져오기
+	//UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "AI")
+	//FRangeofState GetIdealRange();
 
 
 
+	// 이상적인 Range 가져오기
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "AI")
+	float GetAttackRadius();
+
+	// 이상적인 Range 가져오기
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "AI")
+	float GetDefendRadius();
+
+
+
+	// 무기 장착
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "AI")
+	void EquipWeapon();
+
+	// 무기 해제
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "AI")
+	void UnequipWeapon();
+
+	// 공격 수행
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "AI")
+	void Attack(AActor* AttackTarget);
+
+	// 지정된 위치로 점프
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "AI")
+	void JumpToDestination(FVector Destination);
+
+	// 공격 시작
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "AI")
+	bool AttackStart(AActor* AttackTarget, int TokenNeeded);
+
+	// 공격 종료
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "AI")
+	void AttackEnd(AActor* AttackTarget);
+
+	// 공격 토큰 저장
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "AI")
+	void StoreAttackToken(AActor* AttackTarget, int Amount);
+
+	// 순찰 경로 가져오기
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "AI")
+	APatrolRoute* GetPatrolRoute();
 };

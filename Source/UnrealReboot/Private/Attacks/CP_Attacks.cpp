@@ -52,17 +52,25 @@ TArray<AActor*> UCP_Attacks::DamageAllNonTeamMembers(const TArray<FHitResult>& H
         AActor* HitActor = Hit.GetActor();
         if (HitActor && !ActorsDamagedSoFar.Contains(HitActor))
         {
-            IDamageableInterface* DamageableActor = Cast<IDamageableInterface>(HitActor);//이미 해뒀었군...
-            IDamageableInterface* DamageableOwner = Cast<IDamageableInterface>(GetOwner());
-
-            if (DamageableActor && DamageableOwner && DamageableActor->GetTeamNumber() != DamageableOwner->GetTeamNumber())
+            // HitActor가 DamageableInterface를 구현했는지 확인
+            if (HitActor->GetClass()->ImplementsInterface(UDamageableInterface::StaticClass()) &&
+                GetOwner()->GetClass()->ImplementsInterface(UDamageableInterface::StaticClass()))
             {
-                DamageableActor->TakeDamage(DamageInfo, GetOwner());
+                // 인터페이스 함수 호출
+                int32 ActorTeamNumber = IDamageableInterface::Execute_GetTeamNumber(HitActor);
+                int32 OwnerTeamNumber = IDamageableInterface::Execute_GetTeamNumber(GetOwner());
 
-                ActorsDamagedSoFar.AddUnique(HitActor);
+                // 팀이 다를 경우 Damage 처리
+                if (ActorTeamNumber != OwnerTeamNumber)
+                {
+                    IDamageableInterface::Execute_TakeDamage(HitActor, DamageInfo, GetOwner());
+                    ActorsDamagedSoFar.AddUnique(HitActor);
+                }
             }
         }
     }
+
+    // 손상된 액터 목록 반환
     return ActorsDamagedSoFar;
 }
 
@@ -73,29 +81,48 @@ AActor* UCP_Attacks::DamageFirstNonTeamMembers(const TArray<FHitResult>& Hits, F
     for (const FHitResult& Hit : Hits)
     {
         AActor* HitActor = Hit.GetActor();
-        IDamageableInterface* DamageableActor = Cast<IDamageableInterface>(HitActor);
-        IDamageableInterface* DamageableOwner = Cast<IDamageableInterface>(GetOwner());
-
-        if (DamageableActor && DamageableOwner && DamageableActor->GetTeamNumber() != DamageableOwner->GetTeamNumber())
+        if (HitActor && GetOwner())
         {
-            DamageableActor->TakeDamage(DamageInfo, GetOwner());
-            DamagedActor = HitActor; // 피해를 입은 액터를 저장
-            break; // 첫 번째 비팀 멤버에게 피해를 주었으므로 루프를 종료
+            // HitActor와 Owner가 DamageableInterface를 구현했는지 확인
+            if (HitActor->GetClass()->ImplementsInterface(UDamageableInterface::StaticClass()) &&
+                GetOwner()->GetClass()->ImplementsInterface(UDamageableInterface::StaticClass()))
+            {
+                // 인터페이스 함수 호출
+                int32 ActorTeamNumber = IDamageableInterface::Execute_GetTeamNumber(HitActor);
+                int32 OwnerTeamNumber = IDamageableInterface::Execute_GetTeamNumber(GetOwner());
+
+                // 팀 번호가 다를 경우 피해 처리
+                if (ActorTeamNumber != OwnerTeamNumber)
+                {
+                    IDamageableInterface::Execute_TakeDamage(HitActor, DamageInfo, GetOwner());
+                    DamagedActor = HitActor; // 피해를 입은 액터를 저장
+                    break; // 첫 번째 비팀 멤버에게 피해를 주었으므로 루프를 종료
+                }
+            }
         }
     }
 
-    return DamagedActor; // 피해를 입은 액터를 반환하거나, 만약 없다면 nullptr을 반환
+    return DamagedActor; // 피해를 입은 액터를 반환하거나, 없다면 nullptr 반환
 }
 
 USkeletalMeshComponent* UCP_Attacks::AttackBase(AActor* AttackTarget)
 {
-    IEnemyAIInterface* Owner = Cast<IEnemyAIInterface>(GetOwner());
-    Owner->Attack(AttackTarget);
+    if (GetOwner()->GetClass()->ImplementsInterface(UEnemyAIInterface::StaticClass()))
+    {
+        // Attack 호출
+        IEnemyAIInterface::Execute_Attack(GetOwner(), AttackTarget);
+    }
+
+    // Owner를 ACharacter로 캐스팅
     ACharacter* CharOwner = Cast<ACharacter>(GetOwner());
     if (CharOwner)
+    {
         return CharOwner->GetMesh();
+    }
     else
+    {
         return nullptr;
+    }
 }
 
 
@@ -215,18 +242,24 @@ void UCP_Attacks::AOEDamage(float Radius, FDamageInfo& DamageInfo)
 
 void UCP_Attacks::AOEDamageActor(AActor* Actor)
 {
-
-
     if (AOEDamageInfoMapping.IsSet() && AOEDamageInfoMapping.GetValue().AOEDamageActor == Actor)
     {
         FAOEDamageInfoMapping& Mapping = AOEDamageInfoMapping.GetValue();
-        IDamageableInterface* DamageActor = Cast<IDamageableInterface>(Actor);
-        IDamageableInterface* Owner = Cast<IDamageableInterface>(GetOwner());
 
-        if (DamageActor && Owner && DamageActor->GetTeamNumber() != Owner->GetTeamNumber())
+        // Actor와 Owner가 IDamageableInterface를 구현했는지 확인
+        if (Actor->GetClass()->ImplementsInterface(UDamageableInterface::StaticClass()) &&
+            GetOwner()->GetClass()->ImplementsInterface(UDamageableInterface::StaticClass()))
         {
-            DamageActor->TakeDamage(Mapping.DamageInfo, GetOwner());
-            AOEDamageInfoMapping.Reset();
+            // 인터페이스 함수 호출
+            int32 ActorTeamNumber = IDamageableInterface::Execute_GetTeamNumber(Actor);
+            int32 OwnerTeamNumber = IDamageableInterface::Execute_GetTeamNumber(GetOwner());
+
+            // 팀 번호가 다른 경우 피해 처리
+            if (ActorTeamNumber != OwnerTeamNumber)
+            {
+                IDamageableInterface::Execute_TakeDamage(Actor, Mapping.DamageInfo, GetOwner());
+                AOEDamageInfoMapping.Reset();
+            }
         }
     }
 }
@@ -323,8 +356,10 @@ void UCP_Attacks::GroundSmash(FAttackInfo& AttackInfo, float Radius)
             float MontageLength = AnimInstance->Montage_Play(MontageToPlay, MontagePlayRate, EMontagePlayReturnType::MontageLength, MontageStartPosition);
             bool bPlayedSuccessfully = MontageLength > 0.f;
 
-            IDamageableInterface* owner_dmg_interface = Cast<IDamageableInterface>(GetOwner());
-            owner_dmg_interface->SetIsInterruptible(false);
+            if (IDamageableInterface* OwnerDmgInterface = Cast<IDamageableInterface>(GetOwner()))
+            {
+                IDamageableInterface::Execute_SetIsInterruptible(GetOwner(), false);
+            }
 
             if (bPlayedSuccessfully)
             {
@@ -359,10 +394,8 @@ void UCP_Attacks::PrimaryMeleeAttack(FAttackInfo& AttackInfo, float Radius, floa
 {
     CurrentAttackInfo = AttackInfo;
     CurrentRadius = Radius;
-    CurrentLength = Length;
-    
 
-    USkeletalMeshComponent* MeshComp = AttackBase(AttackInfo.AttackTarget);// 매쉬컴포넌트 받아오기
+    USkeletalMeshComponent* MeshComp = AttackBase(AttackInfo.AttackTarget); // 매쉬 컴포넌트 받아오기
     UAnimMontage* MontageToPlay = AttackInfo.Montage;
 
     if (MeshComp && MontageToPlay)
@@ -372,41 +405,42 @@ void UCP_Attacks::PrimaryMeleeAttack(FAttackInfo& AttackInfo, float Radius, floa
         {
             float MontagePlayRate = 1.0f;
             float MontageStartPosition = 0.0f;
-            FName MontageStartingSection;
+            FName MontageStartingSection = NAME_None;
 
-            // Play the montage and check if played successfully
+            // 애니메이션 재생
             float MontageLength = AnimInstance->Montage_Play(MontageToPlay, MontagePlayRate, EMontagePlayReturnType::MontageLength, MontageStartPosition);
             bool bPlayedSuccessfully = MontageLength > 0.f;
 
-            IDamageableInterface* owner_dmg_interface = Cast<IDamageableInterface>(GetOwner());
-            owner_dmg_interface->SetIsInterruptible(false);
+            // Owner가 DamageableInterface를 구현했는지 확인
+            if (GetOwner() && GetOwner()->GetClass()->ImplementsInterface(UDamageableInterface::StaticClass()))
+            {
+                // 인터페이스 함수 호출
+                IDamageableInterface::Execute_SetIsInterruptible(GetOwner(), false);
+            }
 
             if (bPlayedSuccessfully)
             {
-                // Optionally jump to a starting section
+                // 특정 섹션으로 이동
                 if (MontageStartingSection != NAME_None)
                 {
                     AnimInstance->Montage_JumpToSection(MontageStartingSection, MontageToPlay);
                 }
 
-                // Bind the OnMontageEnded delegate
+                // EndDelegate 바인드
                 FOnMontageEnded OnMontageEndedDelegate;
                 OnMontageEndedDelegate.BindUObject(this, &UCP_Attacks::OnMontageCompleted);
+
                 AnimInstance->Montage_SetEndDelegate(OnMontageEndedDelegate, MontageToPlay);
 
-                // Bind to Notify Begin and End for additional actions
-                AnimInstance->OnPlayMontageNotifyBegin.AddDynamic(this, &UCP_Attacks::OnNotifyBeginReceived_PrimaryMeleeAttack);
-
+                // Notify Begin 바인드
+                AnimInstance->OnPlayMontageNotifyBegin.AddDynamic(this, &UCP_Attacks::OnNotifyBeginReceived_GroundSmash);
             }
             else
             {
-                // Handle montage interrupted or failed to play
+                // 몽타주 재생 실패 처리
                 OnInterrupted();
             }
         }
-
-        IDamageableInterface* owner_dmg_interface = Cast<IDamageableInterface>(GetOwner());
-        owner_dmg_interface->SetIsInterruptible(false);
     }
 }
 
@@ -414,7 +448,7 @@ void UCP_Attacks::LongRangeMeleeAttack(FAttackInfo& AttackInfo)
 {
     CurrentAttackInfo = AttackInfo;
 
-    USkeletalMeshComponent* MeshComp = AttackBase(AttackInfo.AttackTarget);// 매쉬컴포넌트 받아오기
+    USkeletalMeshComponent* MeshComp = AttackBase(AttackInfo.AttackTarget); // 매쉬 컴포넌트 받아오기
     UAnimMontage* MontageToPlay = AttackInfo.Montage;
 
     if (MeshComp && MontageToPlay)
@@ -424,35 +458,38 @@ void UCP_Attacks::LongRangeMeleeAttack(FAttackInfo& AttackInfo)
         {
             float MontagePlayRate = 1.0f;
             float MontageStartPosition = 0.0f;
-            FName MontageStartingSection; // Set if you have one
+            FName MontageStartingSection = NAME_None; // 필요한 경우 설정
 
-            // Play the montage and check if played successfully
+            // 몽타주 재생 및 성공 여부 확인
             float MontageLength = AnimInstance->Montage_Play(MontageToPlay, MontagePlayRate, EMontagePlayReturnType::MontageLength, MontageStartPosition);
             bool bPlayedSuccessfully = MontageLength > 0.f;
 
-            IDamageableInterface* owner_dmg_interface = Cast<IDamageableInterface>(GetOwner());
-            owner_dmg_interface->SetIsInterruptible(false);
+            // Owner가 IDamageableInterface를 구현했는지 확인
+            if (GetOwner() && GetOwner()->GetClass()->ImplementsInterface(UDamageableInterface::StaticClass()))
+            {
+                // SetIsInterruptible 호출
+                IDamageableInterface::Execute_SetIsInterruptible(GetOwner(), false);
+            }
 
             if (bPlayedSuccessfully)
             {
-                // Optionally jump to a starting section
+                // 필요한 경우 특정 섹션으로 이동
                 if (MontageStartingSection != NAME_None)
                 {
                     AnimInstance->Montage_JumpToSection(MontageStartingSection, MontageToPlay);
                 }
 
-                // Bind the OnMontageEnded delegate
+                // OnMontageEnded 델리게이트 바인딩
                 FOnMontageEnded OnMontageEndedDelegate;
                 OnMontageEndedDelegate.BindUObject(this, &UCP_Attacks::OnMontageCompleted);
                 AnimInstance->Montage_SetEndDelegate(OnMontageEndedDelegate, MontageToPlay);
 
-                // Bind to Notify Begin and End for additional actions
+                // Notify Begin 이벤트 바인딩
                 AnimInstance->OnPlayMontageNotifyBegin.AddDynamic(this, &UCP_Attacks::OnNotifyBeginReceived_LongRangeMeleeAttack);
-
             }
             else
             {
-                // Handle montage interrupted or failed to play
+                // 몽타주 재생 실패 또는 중단 처리
                 OnInterrupted();
             }
         }
@@ -463,7 +500,7 @@ void UCP_Attacks::SpinningMeleeAttack(FAttackInfo& AttackInfo)
 {
     CurrentAttackInfo = AttackInfo;
 
-    USkeletalMeshComponent* MeshComp = AttackBase(AttackInfo.AttackTarget);// 매쉬컴포넌트 받아오기
+    USkeletalMeshComponent* MeshComp = AttackBase(AttackInfo.AttackTarget); // 매쉬 컴포넌트 받아오기
     UAnimMontage* MontageToPlay = AttackInfo.Montage;
 
     if (MeshComp && MontageToPlay)
@@ -473,35 +510,38 @@ void UCP_Attacks::SpinningMeleeAttack(FAttackInfo& AttackInfo)
         {
             float MontagePlayRate = 1.0f;
             float MontageStartPosition = 0.0f;
-            FName MontageStartingSection; // Set if you have one
+            FName MontageStartingSection = NAME_None; // 필요한 경우 설정
 
-            // Play the montage and check if played successfully
+            // 몽타주 재생 및 성공 여부 확인
             float MontageLength = AnimInstance->Montage_Play(MontageToPlay, MontagePlayRate, EMontagePlayReturnType::MontageLength, MontageStartPosition);
             bool bPlayedSuccessfully = MontageLength > 0.f;
 
-            IDamageableInterface* owner_dmg_interface = Cast<IDamageableInterface>(GetOwner());
-            owner_dmg_interface->SetIsInterruptible(false);
+            // Owner가 IDamageableInterface를 구현했는지 확인
+            if (GetOwner() && GetOwner()->GetClass()->ImplementsInterface(UDamageableInterface::StaticClass()))
+            {
+                // SetIsInterruptible 호출
+                IDamageableInterface::Execute_SetIsInterruptible(GetOwner(), false);
+            }
 
             if (bPlayedSuccessfully)
             {
-                // Optionally jump to a starting section
+                // 필요한 경우 특정 섹션으로 이동
                 if (MontageStartingSection != NAME_None)
                 {
                     AnimInstance->Montage_JumpToSection(MontageStartingSection, MontageToPlay);
                 }
 
-                // Bind the OnMontageEnded delegate
+                // OnMontageEnded 델리게이트 바인딩
                 FOnMontageEnded OnMontageEndedDelegate;
                 OnMontageEndedDelegate.BindUObject(this, &UCP_Attacks::OnMontageCompleted);
                 AnimInstance->Montage_SetEndDelegate(OnMontageEndedDelegate, MontageToPlay);
 
-                // Bind to Notify Begin and End for additional actions
+                // Notify Begin 이벤트 바인딩
                 AnimInstance->OnPlayMontageNotifyBegin.AddDynamic(this, &UCP_Attacks::OnNotifyBeginReceived_SpinningMeleeAttack);
-
             }
             else
             {
-                // Handle montage interrupted or failed to play
+                // 몽타주 재생 실패 또는 중단 처리
                 OnInterrupted();
             }
         }
@@ -649,16 +689,23 @@ void UCP_Attacks::OnMontageBlendedOut(UAnimMontage* Montage, bool bInterrupted)
 {
     if (bInterrupted)
     {
-        IDamageableInterface* owner_dmg_interface = Cast<IDamageableInterface>(GetOwner());
-        IEnemyAIInterface* owner_AI_interface = Cast<IEnemyAIInterface>(GetOwner());
+        // Owner가 IDamageableInterface를 구현했는지 확인
+        if (GetOwner() && GetOwner()->GetClass()->ImplementsInterface(UDamageableInterface::StaticClass()))
+        {
+            // SetIsInterruptible 호출
+            IDamageableInterface::Execute_SetIsInterruptible(GetOwner(), true);
+        }
 
-        /* owner_AI_interface->AttackEnd();*/
-        owner_dmg_interface->SetIsInterruptible(true);
-
+        // Owner가 IEnemyAIInterface를 구현했는지 확인
+        if (GetOwner() && GetOwner()->GetClass()->ImplementsInterface(UEnemyAIInterface::StaticClass()))
+        {
+            // AttackEnd 호출
+            IEnemyAIInterface::Execute_AttackEnd(GetOwner(),CurrentAttackTarget);
+        }
     }
     else
     {
-        //Blendout
+        // Blendout 처리
     }
 }
 
@@ -724,11 +771,22 @@ void UCP_Attacks::OnNotifyBeginReceived_BarrageMagicSpell(FName NotifyName, cons
 
 void UCP_Attacks::OnInterrupted()
 {
-    IEnemyAIInterface* owner_AI_interface = Cast<IEnemyAIInterface>(GetOwner());
-    IDamageableInterface* owner_dmg_interface = Cast<IDamageableInterface>(GetOwner());
+    if (GetOwner())
+    {
+        // Owner가 IEnemyAIInterface를 구현했는지 확인
+        if (GetOwner()->GetClass()->ImplementsInterface(UEnemyAIInterface::StaticClass()))
+        {
+            // AttackEnd 호출
+            IEnemyAIInterface::Execute_AttackEnd(GetOwner(), CurrentAttackTarget);
+        }
 
-    owner_AI_interface->AttackEnd(CurrentAttackTarget);
-    owner_dmg_interface->SetIsInterruptible(true);
+        // Owner가 IDamageableInterface를 구현했는지 확인
+        if (GetOwner()->GetClass()->ImplementsInterface(UDamageableInterface::StaticClass()))
+        {
+            // SetIsInterruptible 호출
+            IDamageableInterface::Execute_SetIsInterruptible(GetOwner(), true);
+        }
+    }
 }
 
 

@@ -29,6 +29,7 @@ void AEnemyMelee::Tick(float DeltaTime)
 	// melee-specific tick code
 }
 
+
 void AEnemyMelee::GroundSmashAttack(AActor* AttackTarget)
 {
 	// DamageInfo 생성 및 초기화
@@ -113,3 +114,22 @@ void AEnemyMelee::SpinningAttack(AActor* AttackTarget)
 	// AttackComponent를 통해 Ground Smash 실행
 	AttackComponent->SpinningMeleeAttack(AttackInfo);
 }
+
+
+//나중에 두개 다 만들자
+void AEnemyMelee::EquipWeapon()
+{
+}
+
+void AEnemyMelee::UnEquipWeapon()
+{
+}
+
+
+//----------------------Block
+
+void AEnemyMelee::BlockTrigger()
+{
+}
+
+

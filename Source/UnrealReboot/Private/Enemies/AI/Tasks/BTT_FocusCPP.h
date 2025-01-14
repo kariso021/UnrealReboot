@@ -12,7 +12,7 @@
  * 
  */
 UCLASS()
-class UBTT_FocusCPP : public UBTTask_BlackboardBase
+class UBTT_FocusCPP : public UBTTaskNode
 {
     GENERATED_BODY()
 
@@ -24,7 +24,7 @@ public:
 
 protected:
     /** Blackboard Key Selector for the focus target (Actor) */
-    UPROPERTY(EditAnywhere, Category = "Blackboard")
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Default", meta = (AllowPrivateAccess = "true", DisplayName = "Focus Target Key"))
     FBlackboardKeySelector FocusTargetKey;
 
 

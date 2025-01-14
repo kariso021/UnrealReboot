@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// DamageableInterface.h
 
 #pragma once
 
@@ -11,48 +11,58 @@
 UINTERFACE(MinimalAPI)
 class UDamageableInterface : public UInterface
 {
-	GENERATED_BODY()
+    GENERATED_BODY()
 };
 
 /**
- * 
+ *
  */
 class IDamageableInterface
 {
-	GENERATED_BODY()
+    GENERATED_BODY()
 
-	// Add interface functions to this class. This is the class that will be inherited to implement this interface.
 public:
-	UFUNCTION()
-	virtual float GetCurrentHealth();
+    // 현재 체력 가져오기
+    UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Damageable")
+    float GetCurrentHealth();
 
-	UFUNCTION()
-	virtual void SetIsInvincible(bool set);
+    // 무적 설정
+    UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Damageable")
+    void SetIsInvincible(bool set);
 
-	UFUNCTION()
-	virtual float GetMaxHealth();
+    // 최대 체력 가져오기
+    UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Damageable")
+    float GetMaxHealth();
 
-	UFUNCTION()
-	virtual float Heal(float Amount);
+    // 체력 회복
+    UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Damageable")
+    float Heal(float Amount);
 
-	UFUNCTION()
-	virtual bool IsDead();
+    // 죽었는지 확인
+    UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Damageable")
+    bool IsDead();
 
-	UFUNCTION()
-	virtual bool TakeDamage(FDamageInfo& DamageInfo, AActor* DamageCauser);
+    // 피해를 입었는지 처리
+    UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Damageable")
+    bool TakeDamage(FDamageInfo& DamageInfo, AActor* DamageCauser);
 
-	UFUNCTION()
-	virtual bool IsAttacking();
+    // 공격 중인지 확인
+    UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Damageable")
+    bool IsAttacking();
 
-	UFUNCTION()
-	virtual bool ReserveAttackToken(int Amount);
+    // 공격 토큰 예약
+    UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Damageable")
+    bool ReserveAttackToken(int Amount);
 
-	UFUNCTION()
-	virtual void ReturnAttackToken(int Amount);
+    // 공격 토큰 반환
+    UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Damageable")
+    void ReturnAttackToken(int Amount);
 
-	UFUNCTION()
-	virtual int GetTeamNumber();
+    // 팀 번호 가져오기
+    UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Damageable")
+    int GetTeamNumber();
 
-	UFUNCTION()
-	virtual void SetIsInterruptible(bool Value);
+    // 인터럽트 가능 여부 설정
+    UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Damageable")
+    void SetIsInterruptible(bool Value);
 };

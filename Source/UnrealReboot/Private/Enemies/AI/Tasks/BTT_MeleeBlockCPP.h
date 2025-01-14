@@ -13,5 +13,19 @@ UCLASS()
 class UBTT_MeleeBlockCPP : public UBTTaskNode
 {
 	GENERATED_BODY()
+
+protected:
+	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
+
+	UFUNCTION()
+	void OnBlockFinished();
+
+
+protected:
+
+	class AAIController* CachedAIController;
+	UBehaviorTreeComponent* CachedOwnerComp;
+
+	class AEnemyMelee* EnemyBase;
 	
 };

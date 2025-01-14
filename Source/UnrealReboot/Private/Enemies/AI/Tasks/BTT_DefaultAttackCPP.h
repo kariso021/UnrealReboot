@@ -10,7 +10,7 @@
  * 
  */
 UCLASS()
-class UBTT_DefaultAttackCPP : public UBTTask_BlackboardBase
+class UBTT_DefaultAttackCPP : public UBTTaskNode
 {
 	GENERATED_BODY()
 
@@ -28,7 +28,7 @@ protected:
 
 private:
 
-	UPROPERTY(EditAnywhere, Category = "Blackboard")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Default", meta = (AllowPrivateAccess = "true", DisplayName = "Attack Target Key"))
 	FBlackboardKeySelector AttackTargetKey;
 
 

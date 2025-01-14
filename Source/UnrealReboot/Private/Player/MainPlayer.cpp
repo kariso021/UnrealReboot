@@ -267,57 +267,57 @@ void AMainPlayer::OnDeath()
 
 //--------------------------------Interface---------------------------------
 
-float AMainPlayer::GetCurrentHealth()
+float AMainPlayer::GetCurrentHealth_Implementation()
 {
     return DamageSystemComponent->GetCurrentHP_FromComponent();
 }
 
-float AMainPlayer::GetMaxHealth()
+float AMainPlayer::GetMaxHealth_Implementation()
 {
     return DamageSystemComponent->GetMaxHP_FromComponent();
 }
 
-float AMainPlayer::Heal(float Amount)
+float AMainPlayer::Heal_Implementation(float Amount)
 {
     return DamageSystemComponent->HealCPP(Amount);
 }
 
-bool AMainPlayer::IsDead()
+bool AMainPlayer::IsDead_Implementation()
 {
     return DamageSystemComponent->GetIsDead();
 }
 
-bool AMainPlayer::TakeDamage(FDamageInfo& DamageInfo, AActor* DamageCauser)
+bool AMainPlayer::TakeDamage_Implementation(FDamageInfo& DamageInfo, AActor* DamageCauser)
 {
     return DamageSystemComponent->TakeDamageCPP(DamageInfo, DamageCauser);
 }
 
-bool AMainPlayer::IsAttacking()
+bool AMainPlayer::IsAttacking_Implementation()
 {
     return attacking;
 }
 
-bool AMainPlayer::ReserveAttackToken(int Amount)
+bool AMainPlayer::ReserveAttackToken_Implementation(int Amount)
 {
     return DamageSystemComponent->ReserveAttackTokenCPP(Amount);
 }
 
-void AMainPlayer::ReturnAttackToken(int Amount)
+void AMainPlayer::ReturnAttackToken_Implementation(int Amount)
 {
     DamageSystemComponent->ReturnAttackTokenCPP(Amount);
 }
 
-int AMainPlayer::GetTeamNumber()
+int AMainPlayer::GetTeamNumber_Implementation()
 {
     return teamNumber;
 }
 
-void AMainPlayer::SetIsInterruptible(bool Value)
+void AMainPlayer::SetIsInterruptible_Implementation(bool Value)
 {
     DamageSystemComponent->SetIsInterruptible_FromComponent(Value);
 }
 
-void AMainPlayer::SetIsInvincible(bool value)
+void AMainPlayer::SetIsInvincible_Implementation(bool value)
 {
     DamageSystemComponent->SetInvincible(value);
 }

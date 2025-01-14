@@ -13,5 +13,15 @@ UCLASS()
 class UBTT_UnequipWeaponCPP : public UBTTaskNode
 {
 	GENERATED_BODY()
+
+
+protected:
+	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
+
+
+	UBehaviorTreeComponent* CachedOwnerComp;
+
+	class AEnemyBase* EnemyBase;
+	void OnFinishOnSheath();
 	
 };

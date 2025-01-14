@@ -45,6 +45,9 @@ public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+    //--------------------------Check
+    bool GetisWieldingWeapon();
+
 //----------------------Delegate
 
     UPROPERTY()
@@ -65,30 +68,34 @@ public:
 
 //------------------------------Interface ÀüºÎ virtual ·Î
 
-     // IDamageableInterface required methods
-    virtual float GetCurrentHealth() override;
-    virtual float GetMaxHealth() override;
-    virtual float Heal(float Amount) override;
-    virtual bool IsDead() override;
-    virtual bool TakeDamage(FDamageInfo& DamageInfo, AActor* DamageCauser) override;
-    virtual bool IsAttacking() override;
-    virtual bool ReserveAttackToken(int Amount) override;
-    virtual void ReturnAttackToken(int Amount) override;
-    virtual int GetTeamNumber() override;
-    virtual void SetIsInterruptible(bool Value) override;
-    virtual void SetIsInvincible(bool value) override;
+// IDamageableInterface required methods
+    virtual float GetCurrentHealth_Implementation() override;
+    virtual float GetMaxHealth_Implementation() override;
+    virtual float Heal_Implementation(float Amount) override;
+    virtual bool IsDead_Implementation() override;
+    virtual bool TakeDamage_Implementation(FDamageInfo& DamageInfo, AActor* DamageCauser) override;
+    virtual bool IsAttacking_Implementation() override;
+    virtual bool ReserveAttackToken_Implementation(int Amount) override;
+    virtual void ReturnAttackToken_Implementation(int Amount) override;
+    virtual int GetTeamNumber_Implementation() override;
+    virtual void SetIsInterruptible_Implementation(bool Value) override;
+    virtual void SetIsInvincible_Implementation(bool Value) override;
 
     // IEnemyAIInterface required methods
-    virtual float SetMovementSpeed(EM_MovementSpeed Speed) override;
-    virtual FRangeofState GetIdealRange() override;
-    virtual void EquipWeapon() override;
-    virtual void UnequipWeapon() override;
-    virtual void Attack(AActor* AttackTarget) override;
-    virtual void JumpToDestination(FVector Destination) override;
-    virtual bool AttackStart(AActor* AttackTarget, int TokenNeeded) override;
-    virtual void AttackEnd(AActor* AttackTarget) override;
-    virtual void StoreAttackToken(AActor* AttackTarget, int Amount) override;
-    virtual APatrolRoute* GetPatrolRoute() override;
+    virtual float SetMovementSpeed_Implementation(EM_MovementSpeed Speed) override;
+   /* virtual FRangeofState GetIdealRange_Implementation() override;*/
+    virtual float GetAttackRadius_Implementation() override;
+    virtual float GetDefendRadius_Implementation() override;
+
+
+    virtual void EquipWeapon_Implementation() override;
+    virtual void UnequipWeapon_Implementation() override;
+    virtual void Attack_Implementation(AActor* AttackTarget) override;
+    virtual void JumpToDestination_Implementation(FVector Destination) override;
+    virtual bool AttackStart_Implementation(AActor* AttackTarget, int TokenNeeded) override;
+    virtual void AttackEnd_Implementation(AActor* AttackTarget) override;
+    virtual void StoreAttackToken_Implementation(AActor* AttackTarget, int Amount) override;
+    virtual APatrolRoute* GetPatrolRoute_Implementation() override;
 
 
  //--------------------------------------------------Public Source------------------------
@@ -135,6 +142,8 @@ public:
 
 
 protected:
+
+
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
     UWidgetComponent* HealthBarComp;
 
@@ -150,6 +159,8 @@ protected:
 
     UPROPERTY(EditAnywhere)
     UAnimMontage* BlockMontage;
+
+
 
 
   

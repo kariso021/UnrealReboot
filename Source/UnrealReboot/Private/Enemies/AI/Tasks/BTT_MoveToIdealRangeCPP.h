@@ -10,8 +10,25 @@
  * 
  */
 UCLASS()
-class UBTT_MoveToIdealRangeCPP : public UBTTask_BlackboardBase
+class UBTT_MoveToIdealRangeCPP : public UBTTaskNode
 {
 	GENERATED_BODY()
+
+
+
+protected:
+
+
+	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
+
+
+
+private:
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Default", meta = (AllowPrivateAccess = "true", DisplayName = "Attack Target Key"))
+	FBlackboardKeySelector AttackTargetKey;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Default", meta = (AllowPrivateAccess = "true", DisplayName = "Ideal Range Key"))
+	FBlackboardKeySelector IdealRangeKey;
 	
 };

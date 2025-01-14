@@ -38,19 +38,19 @@ enum class EM_MovementSpeed : uint8
 };
 
 
-USTRUCT(Atomic, BlueprintType)
-struct FRangeofState
-{
-    GENERATED_USTRUCT_BODY()
-
-public:
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "IdealRange")
-    float AttackRadius;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "IdealRange")
-    float DefendRadius;
-
-};
+//USTRUCT(Atomic, BlueprintType)
+//struct FRangeofState
+//{
+//    GENERATED_USTRUCT_BODY()
+//
+//public:
+//    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "IdealRange")
+//    float AttackRadius;
+//
+//    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "IdealRange")
+//    float DefendRadius;
+//
+//};
 
 USTRUCT(Atomic, BlueprintType)
 struct FCheckSensedStimulus

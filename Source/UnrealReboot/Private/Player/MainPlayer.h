@@ -139,17 +139,17 @@ public:
 
 
 	//---------------------------------------------InterfaceFuntion------------------------------------------------
-	virtual float GetCurrentHealth() override;
-	virtual float GetMaxHealth() override;
-	virtual float Heal(float Amount) override;
-	virtual bool IsDead() override;
-	virtual bool TakeDamage(FDamageInfo& DamageInfo, AActor* DamageCauser) override;
-	virtual bool IsAttacking() override;
-	virtual bool ReserveAttackToken(int Amount) override;
-	virtual void ReturnAttackToken(int Amount) override;
-	virtual int GetTeamNumber() override;
-	virtual void SetIsInterruptible(bool Value) override;
-	virtual void SetIsInvincible(bool value) override;
+	virtual float GetCurrentHealth_Implementation() override;
+	virtual float GetMaxHealth_Implementation() override;
+	virtual float Heal_Implementation(float Amount) override;
+	virtual bool IsDead_Implementation() override;
+	virtual bool TakeDamage_Implementation(FDamageInfo& DamageInfo, AActor* DamageCauser) override;
+	virtual bool IsAttacking_Implementation() override;
+	virtual bool ReserveAttackToken_Implementation(int Amount) override;
+	virtual void ReturnAttackToken_Implementation(int Amount) override;
+	virtual int GetTeamNumber_Implementation() override;
+	virtual void SetIsInterruptible_Implementation(bool Value) override;
+	virtual void SetIsInvincible_Implementation(bool value) override;
 
 	//----------------------------------------------Function of Combat-----------------------------------------------
 	UFUNCTION()

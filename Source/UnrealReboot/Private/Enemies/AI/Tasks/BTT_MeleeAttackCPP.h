@@ -11,9 +11,12 @@
  * 
  */
 UCLASS()
-class UBTT_MeleeAttackCPP : public UBTTask_BlackboardBase
+class UBTT_MeleeAttackCPP : public UBTTaskNode
 {
 	GENERATED_BODY()
+
+public:
+	UBTT_MeleeAttackCPP();
 
 
 protected:
@@ -26,20 +29,23 @@ protected:
 
 private:
 
-	UPROPERTY(EditAnywhere, Category = "Blackboard")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Default", meta = (AllowPrivateAccess = "true", DisplayName = "Attack Target Key"))
 	FBlackboardKeySelector AttackTargetKey;
 
-	UPROPERTY(EditAnywhere, Category = "Blackboard")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Default", meta = (AllowPrivateAccess = "true", DisplayName = "Attack Radius Key"))
 	FBlackboardKeySelector AttackRadiusKey;
 
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Default", meta = (AllowPrivateAccess = "true", DisplayName = "TokenNeeded"))
 	uint8 TokenNeeded;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Default", meta = (AllowPrivateAccess = "true", DisplayName = "AttackName"))
 	EM_Melee_Atttacks AttackName;
 	
 
 	UBehaviorTreeComponent* CachedOwnerComp;
 
-	class AEnemyBase* EnemyBase;
+	class AEnemyMelee* EnemyBase;
 	class AAIController* CachedAIController;
 	
 };

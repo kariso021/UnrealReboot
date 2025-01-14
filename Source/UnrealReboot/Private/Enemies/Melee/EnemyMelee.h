@@ -33,8 +33,8 @@ public:
 
 	// Override any additional functionality or add new functions here
 
+	//TakeDamage 같은경우 나중에 선언하자
 
-protected:
 
 	UFUNCTION(BlueprintCallable, Category = "Attack")
 	void GroundSmashAttack(AActor* AttackTarget);
@@ -47,6 +47,36 @@ protected:
 
 	UFUNCTION(BlueprintCallable, Category = "Attack")
 	void SpinningAttack(AActor* AttackTarget);
+
+
+protected:
+
+	//--------------------------------Attack Of Skills-------------------------------------
+
+
+
+	//------------------------Equip and UnEquip Weapon--------------------------------------- 나중에 만드는걸로
+
+	UFUNCTION(BlueprintCallable, Category = "Equip")
+	void EquipWeapon();
+
+	UFUNCTION(BlueprintCallable, Category = "Equip")
+	void UnEquipWeapon();
+
+	//----------------------------Block and Suscess------Block 이미 만들어져있음
+
+
+
+
+	UFUNCTION(BlueprintCallable, Category = "Block")
+	void BlockTrigger();
+
+
+	//-----------------------------------------------
+
+
+
+
 
 
 private:

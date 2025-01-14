@@ -52,20 +52,29 @@ void AAIC_EnemyBaseCPP::OnPossess(APawn* InPawn)
 			return;
 		}
 
-		// AI Interface를 통해 필요한 데이터를 가져옴
-		IEnemyAIInterface* TargetAIInterface = Cast<IEnemyAIInterface>(InPawn);
-		if (TargetAIInterface)
+		// InPawn이 EnemyAIInterface를 구현했는지 확인
+		if (InPawn && InPawn->GetClass()->ImplementsInterface(UEnemyAIInterface::StaticClass()))
 		{
-			float AttackRadius = TargetAIInterface->GetIdealRange().AttackRadius;
-			float DefendRadius = TargetAIInterface->GetIdealRange().DefendRadius;
+			// 인터페이스의 Execute_ 함수를 호출하여 데이터를 가져옴
+		/*	FRangeofState IdealRange = IEnemyAIInterface::Execute_GetIdealRange(InPawn);*/
+
+			float AttackRadius = IEnemyAIInterface::Execute_GetAttackRadius(InPawn);
+			float DefendRadius = IEnemyAIInterface::Execute_GetDefendRadius(InPawn);
 
 			// Blackboard에 데이터 설정
-			BlackboardComp->SetValueAsFloat(AttackRadiusKeyName, AttackRadius);
-			BlackboardComp->SetValueAsFloat(DefendRadiusKeyName, DefendRadius);
+			if (BlackboardComp)
+			{
+				BlackboardComp->SetValueAsFloat(AttackRadiusKeyName, AttackRadius);
+				BlackboardComp->SetValueAsFloat(DefendRadiusKeyName, DefendRadius);
+			}
+			else
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Blackboard Component is null!"));
+			}
 		}
 		else
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Failed to cast InPawn to IEnemyAIInterface!"));
+			UE_LOG(LogTemp, Warning, TEXT("InPawn does not implement IEnemyAIInterface!"));
 		}
 
 		// 초기 상태 설정
@@ -167,26 +176,45 @@ void AAIC_EnemyBaseCPP::SetStateAsPassive()
 
 void AAIC_EnemyBaseCPP::SetStateAsAttacking(AActor* attacktarget, bool UseLastKnownAttackTarget)
 {
-	//여기에서 막힌 부분->BPI Damageable 에서 IsDead Message 로 접근하는것
+	AActor* NewAttackTarget = nullptr;
 
-	AActor* NewAttackTarget;
-	//그냥 AttackTarget이 nullptr인거보다 안전하게 접근 가능한지까지 보여주는것->IsValid
+	// AttackTarget이 유효하고 UseLastKnownAttackTarget이 설정된 경우 이를 사용, 그렇지 않으면 attacktarget을 사용
 	if (IsValid(AttackTarget) && UseLastKnownAttackTarget)
+	{
 		NewAttackTarget = AttackTarget;
+	}
 	else
+	{
 		NewAttackTarget = attacktarget;
+	}
 
-	if (IsValid(NewAttackTarget)){
-		IDamageableInterface* NewDamageable = Cast<IDamageableInterface>(NewAttackTarget);
-		if (NewDamageable->IsDead())
+	// NewAttackTarget이 유효한지 확인
+	if (IsValid(NewAttackTarget))
+	{
+		// NewAttackTarget이 DamageableInterface를 구현하는지 확인
+		if (NewAttackTarget->GetClass()->ImplementsInterface(UDamageableInterface::StaticClass()))
+		{
+			// IsDead 메시지를 호출
+			if (IDamageableInterface::Execute_IsDead(NewAttackTarget))
+			{
+				SetStateAsPassive();
+			}
+			else
+			{
+				BlackboardComp->SetValueAsObject(AttackTargetKeyName, attacktarget);
+				BlackboardComp->SetValueAsEnum(StateKeyName, static_cast<uint8>(EM_AIState::Attacking));
+				AttackTarget = NewAttackTarget;
+			}
+		}
+		else
+		{
+			// 인터페이스를 구현하지 않는 경우 상태를 Passive로 설정
 			SetStateAsPassive();
-		else {
-			BlackboardComp->SetValueAsObject(AttackTargetKeyName, attacktarget);
-			BlackboardComp->SetValueAsEnum(StateKeyName, static_cast<uint8>(EM_AIState::Attacking));
-			AttackTarget = NewAttackTarget;
 		}
 	}
-	else {
+	else
+	{
+		// NewAttackTarget이 유효하지 않은 경우 상태를 Passive로 설정
 		SetStateAsPassive();
 	}
 
@@ -314,21 +342,23 @@ void AAIC_EnemyBaseCPP::SetStateAsSeeking(FVector Location)
 
 bool AAIC_EnemyBaseCPP::OnSameTeam(AActor* OtherActor)//어렵다... Message 함수 Damagealbe Interface 를 어떻게 여기에다가 받아오지?
 {
-	//Message 함수 BP 에 있는 기능 공부좀 해야겠다. 나중에 GetPawn이 맞는지 점검하기
 	if (!OtherActor || !GetPawn())
+	{
 		return false;
+	}
 
 	// IBP_Damageable 인터페이스를 구현하는지 확인
-	IDamageableInterface* MyDamageable = Cast<IDamageableInterface>(GetPawn());
-	IDamageableInterface* OtherDamageable = Cast<IDamageableInterface>(OtherActor);
-
-	if (!MyDamageable || !OtherDamageable)
+	if (!OtherActor->GetClass()->ImplementsInterface(UDamageableInterface::StaticClass()) ||
+		!GetPawn()->GetClass()->ImplementsInterface(UDamageableInterface::StaticClass()))
+	{
 		return false;
+	}
 
-	// 팀 번호를 가져와 비교
-	int32 MyTeamNumber = MyDamageable->GetTeamNumber();
-	int32 OtherTeamNumber = OtherDamageable->GetTeamNumber();
+	// 팀 번호 가져오기
+	int32 MyTeamNumber = IDamageableInterface::Execute_GetTeamNumber(GetPawn());
+	int32 OtherTeamNumber = IDamageableInterface::Execute_GetTeamNumber(OtherActor);
 
+	// 팀 번호 비교
 	return MyTeamNumber == OtherTeamNumber;
 }
 

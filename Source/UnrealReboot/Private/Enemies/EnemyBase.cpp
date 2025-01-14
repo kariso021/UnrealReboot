@@ -77,62 +77,64 @@ void AEnemyBase::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent
 
 }
 
-float AEnemyBase::GetCurrentHealth()
+float AEnemyBase::GetCurrentHealth_Implementation()
 {
 	return DamageSystemComponent->GetCurrentHP_FromComponent();
 }
 
-float AEnemyBase::GetMaxHealth()
+float AEnemyBase::GetMaxHealth_Implementation()
 {
 	return DamageSystemComponent->GetMaxHP_FromComponent();
 }
 
-float AEnemyBase::Heal(float Amount)
+float AEnemyBase::Heal_Implementation(float Amount)
 {
 	return DamageSystemComponent->HealCPP(Amount);
 }
 
-bool AEnemyBase::IsDead()
+bool AEnemyBase::IsDead_Implementation()
 {
 	return DamageSystemComponent->GetIsDead();
 }
 
-bool AEnemyBase::TakeDamage(FDamageInfo& DamageInfo, AActor* DamageCauser)
+bool AEnemyBase::TakeDamage_Implementation(FDamageInfo& DamageInfo, AActor* DamageCauser)
 {
+
+
 	return DamageSystemComponent->TakeDamageCPP(DamageInfo, DamageCauser);
 }
 
-bool AEnemyBase::IsAttacking()
+bool AEnemyBase::IsAttacking_Implementation()
 {
 	return Attacking;
 }
 
-bool AEnemyBase::ReserveAttackToken(int Amount)
+bool AEnemyBase::ReserveAttackToken_Implementation(int Amount)
 {
 	return DamageSystemComponent->ReserveAttackTokenCPP(Amount);
 }
 
-void AEnemyBase::ReturnAttackToken(int Amount)
+void AEnemyBase::ReturnAttackToken_Implementation(int Amount)
 {
 	DamageSystemComponent->ReturnAttackTokenCPP(Amount);
 }
 
-int AEnemyBase::GetTeamNumber()
+int AEnemyBase::GetTeamNumber_Implementation()
 {
 	return TeamNumber;
 }
 
-void AEnemyBase::SetIsInterruptible(bool Value)
+void AEnemyBase::SetIsInterruptible_Implementation(bool Value)
 {
 	DamageSystemComponent->SetIsInterruptible_FromComponent(Value);
 }
 
-void AEnemyBase::SetIsInvincible(bool value)
+void AEnemyBase::SetIsInvincible_Implementation(bool value)
 {
 	DamageSystemComponent->SetInvincible(value);
 }
 
-float AEnemyBase::SetMovementSpeed(EM_MovementSpeed Speed)
+float AEnemyBase::SetMovementSpeed_Implementation(EM_MovementSpeed Speed)
 {
 	
 	switch(Speed){
@@ -158,30 +160,41 @@ float AEnemyBase::SetMovementSpeed(EM_MovementSpeed Speed)
 	}
 }
 
-FRangeofState AEnemyBase::GetIdealRange()
+//FRangeofState AEnemyBase::GetIdealRange_Implementation()
+//{
+//	FRangeofState ReturnValue;
+//	ReturnValue.AttackRadius = 150.0f;
+//	ReturnValue.DefendRadius = 300.0f;
+//	return ReturnValue;
+//}
+
+float AEnemyBase::GetAttackRadius_Implementation()
 {
-	FRangeofState ReturnValue;
-	ReturnValue.AttackRadius = 150.0f;
-	ReturnValue.DefendRadius = 300.0f;
-	return ReturnValue;
+	return 150.0f;
 }
 
-void AEnemyBase::EquipWeapon()
+float AEnemyBase::GetDefendRadius_Implementation()
+{
+	return 300.0f;
+}
+
+
+void AEnemyBase::EquipWeapon_Implementation()
 {
 
 }
 
-void AEnemyBase::UnequipWeapon()
+void AEnemyBase::UnequipWeapon_Implementation()
 {
 
 }
 
-void AEnemyBase::Attack(AActor* AttackTarget)
+void AEnemyBase::Attack_Implementation(AActor* AttackTarget)
 {
 	Attacking = true;
 }
 
-void AEnemyBase::JumpToDestination(FVector Destination)
+void AEnemyBase::JumpToDestination_Implementation(FVector Destination)
 {
 	FVector StartPos = GetActorLocation();
 	FVector LaunchVelocity;
@@ -207,46 +220,38 @@ void AEnemyBase::JumpToDestination(FVector Destination)
 	}
 }
 
-bool AEnemyBase::AttackStart(AActor* AttackTarget, int TokenNeeded)
+bool AEnemyBase::AttackStart_Implementation(AActor* AttackTarget, int TokenNeeded)
 {
-	//IDamageableInterface* owner_dmg_interface = Cast<IDamageableInterface>(GetOwner());
-	IDamageableInterface* AttackTargetdInterface = Cast<IDamageableInterface>(AttackTarget);
-
-	if (AttackTargetdInterface)
+	if (AttackTarget && AttackTarget->GetClass()->ImplementsInterface(UDamageableInterface::StaticClass()))
 	{
-		if (AttackTargetdInterface->ReserveAttackToken(TokenNeeded))
+		if (IDamageableInterface::Execute_ReserveAttackToken(AttackTarget, TokenNeeded))
 		{
 			StoreAttackToken(AttackTarget, TokensUsedInCurrentAttack);
 			Attacking = false;
 			TokensUsedInCurrentAttack = TokenNeeded;
 			return true;
 		}
-		else {
+		else
+		{
 			return false;
 		}
 	}
 
-
-
 	return false;
 }
 
-void AEnemyBase::AttackEnd(AActor* AttackTarget)
+void AEnemyBase::AttackEnd_Implementation(AActor* AttackTarget)
 {
-	//IDamageableInterface* owner_dmg_interface = Cast<IDamageableInterface>(GetOwner());
-	IDamageableInterface* AttackTargetdInterface = Cast<IDamageableInterface>(AttackTarget);
-
-	if (AttackTargetdInterface)
+	if (AttackTarget && AttackTarget->GetClass()->ImplementsInterface(UDamageableInterface::StaticClass()))
 	{
-		AttackTargetdInterface->ReturnAttackToken(TokensUsedInCurrentAttack);
+		IDamageableInterface::Execute_ReturnAttackToken(AttackTarget, TokensUsedInCurrentAttack);
 		StoreAttackToken(AttackTarget, -1 * TokensUsedInCurrentAttack);
 		Attacking = false;
 		OnAttackEnd.Broadcast();
 	}
-
 }
 
-void AEnemyBase::StoreAttackToken(AActor* AttackTarget, int Amount)
+void AEnemyBase::StoreAttackToken_Implementation(AActor* AttackTarget, int Amount)
 {
 	if (AttackTarget == nullptr)
 	{
@@ -267,7 +272,7 @@ void AEnemyBase::StoreAttackToken(AActor* AttackTarget, int Amount)
 	UE_LOG(LogTemp, Log, TEXT("Stored %d tokens for %s."), Amount, *AttackTarget->GetName());
 }
 
-APatrolRoute* AEnemyBase::GetPatrolRoute()
+APatrolRoute* AEnemyBase::GetPatrolRoute_Implementation()
 {
 	return PatrolRoute;
 }
@@ -319,5 +324,10 @@ void AEnemyBase::HandleBlockedEvent(bool bCanBeParried, AActor* DamageCauser)
 
 	HoldBlockTimer.Invalidate();
 
+}
+
+bool AEnemyBase::GetisWieldingWeapon()
+{
+	return IsWieldingWeapon;
 }
 
