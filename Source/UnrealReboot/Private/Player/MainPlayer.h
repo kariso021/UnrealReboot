@@ -16,6 +16,7 @@
 #include "EnhancedInputSubsystems.h"
 #include "EnumPlayerStance.h"
 #include "EnhancedInputComponent.h" //Inputs
+#include "Animation/AnimMontage.h"
 #include "InputAction.h"
 #include "InputMappingContext.h"
 #include "DamageSystem/DamageSystem.h"//DamageSystem
@@ -84,7 +85,7 @@ public:
 	void ChangeStance(EPlayerStance S);
 
 	UFUNCTION()
-	AWeaponBase* EquipWeapon(TSubclassOf<AWeaponBase> WeaponClass, FName SocketName);
+	AActor* EquipWeapon(TSubclassOf<AActor> WeaponBlueprint, FName SocketName);
 
 	UFUNCTION()
 	void UnEquipAllWeapon();
@@ -217,16 +218,41 @@ private:
 	int maxBullet = 30;
 
 
-	TArray<AWeaponBase*> EquippedWeapon;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player State", meta = (AllowPrivateAccess = "true"))
 	EPlayerStance Stance;
-	float magicWalkSpeed;
-	float defaultWalkSpeed;
+
+
+	float magicWalkSpeed=200;
+	float defaultWalkSpeed=750;
+	float meleeWalkSpeed=430;
 	bool canMove;
 	bool attacking;
 	FVector aimBoomOffset;
 	FVector defaultBoomOffset;
-	int teamNumber;
-	float meleeWalkSpeed;
+
+	//---------------------------Weapon관련 변수
+	UPROPERTY()
+	AActor* WeaponActor;
+
+	TArray<AActor*> EquippedWeapon;
+
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Weapon", meta = (AllowPrivateAccess = "true"))
+	TSubclassOf<AActor> WeaponSwordClass; // 무기 Blueprint 클래스
+
+
+	//Murdog 캐릭터에 이미 Gun이 딸려있어서 총 클래스는 배제하도록 함
+	//UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Weapon", meta = (AllowPrivateAccess = "true"))
+	//TSubclassOf<AActor> WeaponGunClass; //
+
+	//------------------------------------------------------------
+
+
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Team", meta = (AllowPrivateAccess = "true"))
+	uint8 teamNumber;
+
+	
 	bool isWithinResumeComboWi;
 	float swordDashFloat;
 
@@ -259,6 +285,15 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* DodgeAction;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* Slot1Action;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* Slot2Action;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* Slot3Action;
+
 	
 
 	// Movement Handlers
@@ -271,6 +306,12 @@ protected:
 	void Look(const FInputActionValue& Value);
 
 	void Dodge(const FInputActionValue& Value);
+
+	void Slot1(const FInputActionValue& Value);
+
+	void Slot2(const FInputActionValue& Value);
+
+	void Slot3(const FInputActionValue& Value);
 	
 
 

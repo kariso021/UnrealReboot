@@ -30,7 +30,7 @@ EBTNodeResult::Type UBTT_MeleeAttackCPP::ExecuteTask(UBehaviorTreeComponent& Own
         return EBTNodeResult::Failed;
     }
 
-    // EnemyBase로 캐스팅
+    // EnemyMelee로 캐스팅
     EnemyBase = Cast<AEnemyMelee>(ControlledPawn);
     if (!EnemyBase)
     {
@@ -69,11 +69,23 @@ EBTNodeResult::Type UBTT_MeleeAttackCPP::ExecuteTask(UBehaviorTreeComponent& Own
         return EBTNodeResult::Failed; // 유효하지 않은 반경 값일 경우 실패 처리
     }
 
+    // 공격 종료 이벤트 바인딩 (먼저 수행)
+    if (!EnemyBase->OnAttackEnd.IsAlreadyBound(this, &UBTT_MeleeAttackCPP::OnAttackFinished))
+    {
+        UE_LOG(LogTemp, Log, TEXT("Binding OnAttackEnd event."));
+        EnemyBase->OnAttackEnd.AddDynamic(this, &UBTT_MeleeAttackCPP::OnAttackFinished);
+    }
+
     // AttackStart 호출
     bool bAttackStarted = IEnemyAIInterface::Execute_AttackStart(ControlledPawn, AttackTarget, TokenNeeded);
-    if (!bAttackStarted)
+    if (bAttackStarted)
     {
-        return EBTNodeResult::Failed;
+       /* AIController->ClearFocus(EAIFocusPriority::Gameplay);*/
+       /* IEnemyAIInterface::Execute_SetMovementSpeed(ControlledPawn, EM_MovementSpeed::Sprinting);*/
+    }
+    else 
+    {
+        /*return EBTNodeResult::Failed;*/
     }
 
     // AttackStart가 정상 작동일 시
@@ -110,9 +122,6 @@ EBTNodeResult::Type UBTT_MeleeAttackCPP::ExecuteTask(UBehaviorTreeComponent& Own
             default:
                 break;
             }
-
-            // 공격 종료 이벤트 바인딩
-            EnemyBase->OnAttackEnd.AddDynamic(this, &UBTT_MeleeAttackCPP::OnAttackFinished);
         }
         else
         {
@@ -124,14 +133,14 @@ EBTNodeResult::Type UBTT_MeleeAttackCPP::ExecuteTask(UBehaviorTreeComponent& Own
     {
         // MoveToLocation 실패
         IEnemyAIInterface::Execute_AttackEnd(ControlledPawn, AttackTarget);
+
+        // 이벤트 바인딩 해제 (실패 시)
+        EnemyBase->OnAttackEnd.RemoveDynamic(this, &UBTT_MeleeAttackCPP::OnAttackFinished);
         return EBTNodeResult::Failed;
     }
 
     // OwnerComp 캐시
     CachedOwnerComp = &OwnerComp;
-
-    // 공격 종료 이벤트 바인딩
-    EnemyBase->OnAttackEnd.AddDynamic(this, &UBTT_MeleeAttackCPP::OnAttackFinished);
 
     return EBTNodeResult::InProgress; // 비동기 작업 진행
 
@@ -141,13 +150,18 @@ void UBTT_MeleeAttackCPP::OnAttackFinished()
 {
     if (CachedOwnerComp)
     {
-        FinishLatentTask(*CachedOwnerComp, EBTNodeResult::Succeeded);
-
         // 이벤트 바인딩 해제 (메모리 누수 방지)
         if (EnemyBase)
         {
+            UE_LOG(LogTemp, Log, TEXT("Unbinding OnAttackEnd event."));
             EnemyBase->OnAttackEnd.RemoveDynamic(this, &UBTT_MeleeAttackCPP::OnAttackFinished);
         }
+
+        FinishLatentTask(*CachedOwnerComp, EBTNodeResult::Succeeded);
+    }
+    else
+    {
+        UE_LOG(LogTemp, Warning, TEXT("CachedOwnerComp is null. Cannot finish task."));
     }
 
 }

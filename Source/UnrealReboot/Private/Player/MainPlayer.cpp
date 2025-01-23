@@ -111,6 +111,14 @@ void AMainPlayer::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
         //Looking
         EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AMainPlayer::Look);
 
+        //ChangeStance
+        EnhancedInputComponent->BindAction(Slot1Action, ETriggerEvent::Triggered, this, &AMainPlayer::Slot1);
+
+        EnhancedInputComponent->BindAction(Slot2Action, ETriggerEvent::Triggered, this, &AMainPlayer::Slot2);
+
+        EnhancedInputComponent->BindAction(Slot3Action, ETriggerEvent::Triggered, this, &AMainPlayer::Slot3);
+
+
     }
 
 
@@ -132,6 +140,7 @@ void AMainPlayer::ChangeStance(EPlayerStance NewStance)
         break;
     case EPlayerStance::Ranged:
         EnterRangedStance();
+        UE_LOG(LogTemp, Display, TEXT("RangeStance !"));
         break;
     case EPlayerStance::Melee:
         MeleeStance();
@@ -145,7 +154,7 @@ void AMainPlayer::ChangeStance(EPlayerStance NewStance)
 
 }
 
-AWeaponBase* AMainPlayer::EquipWeapon(TSubclassOf<AWeaponBase> WeaponClass, FName SocketName)
+AActor* AMainPlayer::EquipWeapon(TSubclassOf<AActor> WeaponClass, FName SocketName)
 {
     if (!WeaponClass)
     {
@@ -154,7 +163,7 @@ AWeaponBase* AMainPlayer::EquipWeapon(TSubclassOf<AWeaponBase> WeaponClass, FNam
     }
 
     // 무기 클래스의 인스턴스를 생성
-    AWeaponBase* NewWeapon = GetWorld()->SpawnActor<AWeaponBase>(WeaponClass, FVector::ZeroVector, FRotator::ZeroRotator);
+    AActor* NewWeapon = GetWorld()->SpawnActor<AActor>(WeaponClass, FVector::ZeroVector, FRotator::ZeroRotator);
 
     if (!NewWeapon)
     {
@@ -173,7 +182,7 @@ AWeaponBase* AMainPlayer::EquipWeapon(TSubclassOf<AWeaponBase> WeaponClass, FNam
 void AMainPlayer::UnEquipAllWeapon()
 {
     // 장착된 모든 무기를 순회하면서 각각을 파괴합니다.
-    for (AWeaponBase* Weapon : EquippedWeapon)
+    for (AActor* Weapon : EquippedWeapon)
     {
         if (Weapon)
         {
@@ -466,6 +475,7 @@ void AMainPlayer::UnarmedStance()
 
         CharMovement->MaxWalkSpeed = defaultWalkSpeed;
     }
+    UnEquipAllWeapon();
 }
 
 void AMainPlayer::MeleeStance()
@@ -480,6 +490,7 @@ void AMainPlayer::MeleeStance()
 
         CharMovement->MaxWalkSpeed = meleeWalkSpeed;
     }
+    EquipWeapon(WeaponSwordClass, "hand_r_sword_socket");
 
 }
 
@@ -493,7 +504,7 @@ void AMainPlayer::EnterRangedStance()
 
         CharMovement->bUseControllerDesiredRotation = true; 
 
-        CharMovement->MaxWalkSpeed = meleeWalkSpeed;
+        CharMovement->MaxWalkSpeed = magicWalkSpeed;
     }
 
 
@@ -535,6 +546,24 @@ void AMainPlayer::Look(const FInputActionValue& Value)
         AddControllerYawInput(LookAxisVector.X);
         AddControllerPitchInput(LookAxisVector.Y);
     }
+}
+
+void AMainPlayer::Slot1(const FInputActionValue& Value)
+{
+    UE_LOG(LogTemp, Display, TEXT("Slot1 Selected"));
+    ChangeStance(EPlayerStance::Unarmed);
+}
+
+void AMainPlayer::Slot2(const FInputActionValue& Value)
+{
+    UE_LOG(LogTemp, Display, TEXT("Slot2 Selected"));
+    ChangeStance(EPlayerStance::Ranged);
+}
+
+void AMainPlayer::Slot3(const FInputActionValue& Value)
+{
+    UE_LOG(LogTemp, Display, TEXT("Slot3 Selected"));
+    ChangeStance(EPlayerStance::Melee);
 }
 
 void AMainPlayer::Dodge(const FInputActionValue& Value)

@@ -41,12 +41,13 @@ void UBTT_MeleeBlockCPP::OnBlockFinished()
 {
     if (CachedOwnerComp)
     {
-        FinishLatentTask(*CachedOwnerComp, EBTNodeResult::Succeeded);
 
         // 이벤트 바인딩 해제 (메모리 누수 방지)
         if (EnemyBase)
         {
             EnemyBase->OnAttackEnd.RemoveDynamic(this, &UBTT_MeleeBlockCPP::OnBlockFinished);
         }
+
+        FinishLatentTask(*CachedOwnerComp, EBTNodeResult::Succeeded);
     }
 }

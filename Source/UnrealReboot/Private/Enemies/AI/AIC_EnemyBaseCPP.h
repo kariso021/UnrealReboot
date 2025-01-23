@@ -117,7 +117,12 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI")
 	UAISenseConfig_Hearing* HearingConfig;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI")
+	UAISenseConfig_Damage* DamageSenseConfig;
 
+
+
+	UFUNCTION()
 	void OnPerceptionUpdated(const TArray<AActor*>& UpdatedActors);
 
 
@@ -126,6 +131,8 @@ private:
 	void InitializeSightConfig();
 
 	void InitializeHearingConfig();
+
+	void InitializeDamageSenseConfig();
 
 
 
@@ -136,6 +143,7 @@ private:
 	FName PointOfInterestKeyName;
 	FName AttackRadiusKeyName;
 	FName DefendRadiusKeyName;
+	FName DistanceToAttackTargetKeyName;
 
 	// Actor
 	AActor* AttackTarget;

@@ -23,4 +23,23 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
+	UFUNCTION(BlueprintCallable, Category = "Patrol")
+	FVector GetSplinePointAsWorldPosition() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Patrol")
+	void IncrementPatrolRoute();
+
+
+	// Spline component for the patrol route
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Patrol")
+	class USplineComponent* PatrolRoute;
+
+	// Patrol index
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Patrol")
+	int32 PatrolIndex;
+
+	// Patrol direction (1 for forward, -1 for backward)
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Patrol")
+	int32 Direction;
+
 };

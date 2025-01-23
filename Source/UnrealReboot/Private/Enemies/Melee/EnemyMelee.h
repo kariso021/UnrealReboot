@@ -63,6 +63,11 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "Equip")
 	void UnEquipWeapon();
 
+
+	//-----------------------------------------------------------------------------------------
+
+
+
 	//----------------------------Block and Suscess------Block 이미 만들어져있음
 
 
@@ -83,6 +88,44 @@ private:
 	// Mesh의 회전값을 저장하기 위한 변수
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Setup", meta = (AllowPrivateAccess = "true"))
 	FRotator MeshRotationBeforeSpin;
+
+	// 블루프린트에서 설정 가능한 애니메이션 몽타주
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta = (AllowPrivateAccess = "true"))
+	UAnimMontage* GroundSmashMontage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta = (AllowPrivateAccess = "true"))
+	UAnimMontage* SwordSlashMontage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta = (AllowPrivateAccess = "true"))
+	UAnimMontage* SwordJumpAttackMontage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta = (AllowPrivateAccess = "true"))
+	UAnimMontage* SwordSpinningAttackMontage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta = (AllowPrivateAccess = "true"))
+	UAnimMontage* UnSheathSwordMontage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta = (AllowPrivateAccess = "true"))
+	UAnimMontage* SheathSwordMontage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta = (AllowPrivateAccess = "true"))
+	UAnimMontage* SwordBlockMontage;
+
+
+	//-------------------------------------------------------------------MontageFunction
+
+
+	UFUNCTION()
+	void UnSheath_MontageCompleted(UAnimMontage* Montage, bool bInterrupted);
+
+	UFUNCTION()
+	void Sheath_MontageCompleted(UAnimMontage* Montage, bool bInterrupted);
+
+	UFUNCTION()
+	void OnNotifyBeginReceived_EquipWeapon(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointPayload);
+
+	UFUNCTION()
+	void OnNotifyBeginReceived_UnEquipWeapon(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointPayload);
 
 
 

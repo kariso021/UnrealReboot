@@ -37,6 +37,7 @@ public:
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+    
 
 public:	
 	// Called every frame
@@ -47,6 +48,13 @@ public:
 
     //--------------------------Check
     bool GetisWieldingWeapon();
+
+    virtual void PossessedBy(AController* NewController) override;
+
+
+    //--------------------------------BehaviorTree
+
+    UBehaviorTree* GetBehaviorTree();
 
 //----------------------Delegate
 
@@ -98,10 +106,6 @@ public:
     virtual APatrolRoute* GetPatrolRoute_Implementation() override;
 
 
- //--------------------------------------------------Public Source------------------------
-    //like Bt, or Team Number
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Team")
-    int TeamNumber;
 
 
     //---------------------------------------------Events------------------------------------
@@ -126,12 +130,8 @@ public:
     void HandleBlockedEvent(bool bCanBeParried, AActor* DamageCauser);
     //여기서 DAMAGESYSTEM Component 에서 생성한 Delegate 를 이용하는것
 
-    //Public으로 무조건 놔야겠다. 다른곳에서 참조를 할수가 없네
-    UPROPERTY(EditDefaultsOnly, Category = "AI")
-    UBehaviorTree* BehaviorTree;
 
-    UPROPERTY()
-    APatrolRoute* PatrolRoute;//AActor 로 해도 됨
+   
 
     
  
@@ -143,6 +143,9 @@ public:
 
 protected:
 
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
+    UBehaviorTree* BehaviorTree;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
     UWidgetComponent* HealthBarComp;
@@ -160,6 +163,18 @@ protected:
     UPROPERTY(EditAnywhere)
     UAnimMontage* BlockMontage;
 
+    bool IsWieldingWeapon;
+
+
+    //---------------------------------------------------Weapon관련 부분
+
+    UPROPERTY()
+    AActor* WeaponActor;
+
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Weapon", meta = (AllowPrivateAccess = "true"))
+    TSubclassOf<AActor> WeaponBlueprint; // 무기 Blueprint 클래스
+
 
 
 
@@ -175,8 +190,11 @@ protected:
 
 
 private:
-    bool IsWieldingWeapon;
-    AActor* WeaponActor;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Team", meta = (AllowPrivateAccess = "true"))
+    uint8 TeamNumber;
+
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Montage", meta = (AllowPrivateAccess = "true"))
     UAnimMontage* HitReactionMontage;
     bool Attacking;
     TMap<AActor*, int32> AttackTokens;
@@ -186,4 +204,7 @@ private:
     FTimerHandle HoldBlockTimer;
     float BlockChance;
     bool WhenDied;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI", meta = (AllowPrivateAccess = "true"))
+    APatrolRoute* PatrolRoute;//AActor 로 해도 됨
 };

@@ -300,25 +300,56 @@ void UCP_Attacks::SphereTraceDamage(float Radius, float Length, FDamageInfo& Dam
 
 void UCP_Attacks::JumpToAttackTarget(AActor* AttackTarget)
 {
-    ACharacter* OwnerCharacter = Cast<ACharacter>(GetOwner());
-    if (OwnerCharacter && AttackTarget)
+    if (!AttackTarget || !GetOwner()) return; // 유효성 검사
+
+    // 1. 현재 위치와 타겟 위치 가져오기
+    FVector StartPosition = GetOwner()->GetActorLocation();
+    FVector AttackTargetPosition = AttackTarget->GetActorLocation();
+
+    // 2. 타겟의 미래 위치 계산
+    float PredictionTime = 1.0f; // 예측 시간
+    FVector PredictedTargetLocation = CalculateFutureActorLocation(AttackTarget, PredictionTime);
+
+    // Z 축을 100만큼 올림
+    PredictedTargetLocation.Z += 100.0f;
+
+    // 3. 거리 계산
+    float Distance = FVector::Dist(StartPosition, AttackTargetPosition);
+
+    // 4. 거리 범위를 Normalize (400 ~ 800 사이로 제한)
+    float NormalizedRange = FMath::Clamp((Distance - 400.0f) / 400.0f, 0.0f, 1.0f);
+
+    // 5. 속도 계산 (Lerp 사용)
+    float Alpha = FMath::Lerp(0.5f, 0.94f, NormalizedRange);
+    FVector LaunchVelocity;
+
+    // 6. 포물선 속도 계산
+    bool bHasValidVelocity = UGameplayStatics::SuggestProjectileVelocity_CustomArc(
+        this,
+        LaunchVelocity,
+        StartPosition,
+        PredictedTargetLocation,
+        0.0f // 중력 오버라이드 값 (기본 중력 사용)
+    );
+
+    if (!bHasValidVelocity)
     {
-        FVector StartPos = OwnerCharacter->GetActorLocation();
-        FVector EndPos = CalculateFutureActorLocation(AttackTarget, 1.0f); // 1초 동안
+        UE_LOG(LogTemp, Warning, TEXT("Failed to calculate projectile velocity!"));
+        return;
+    }
 
-        FVector LaunchVelocity;
-        if (UGameplayStatics::SuggestProjectileVelocity_CustomArc(
-            this,
-            LaunchVelocity,
-            StartPos,
-            EndPos,
-            100.0f))
-        {
-            OwnerCharacter->LaunchCharacter(LaunchVelocity, true, true);
+    // 7. 점프 로직
+    ACharacter* OwnerCharacter = Cast<ACharacter>(GetOwner());
+    if (OwnerCharacter)
+    {
+        OwnerCharacter->LaunchCharacter(LaunchVelocity, true, true);
 
-            // Land 할때 바인드
-            OwnerCharacter->LandedDelegate.AddDynamic(this,&UCP_Attacks::OnLand);
-        }
+        // 착지 이벤트 바인딩
+        OwnerCharacter->LandedDelegate.AddDynamic(this, &UCP_Attacks::OnLand);
+    }
+    else
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Owner is not a character, cannot launch!"));
     }
 }
 
@@ -538,6 +569,11 @@ void UCP_Attacks::SpinningMeleeAttack(FAttackInfo& AttackInfo)
 
                 // Notify Begin 이벤트 바인딩
                 AnimInstance->OnPlayMontageNotifyBegin.AddDynamic(this, &UCP_Attacks::OnNotifyBeginReceived_SpinningMeleeAttack);
+
+                // Notify End 이벤트 바인딩
+                FOnMontageEnded OnMontageInterruptedDelegate;
+                OnMontageInterruptedDelegate.BindUObject(this, &UCP_Attacks::OnMontageInterrupted);
+                AnimInstance->Montage_SetEndDelegate(OnMontageInterruptedDelegate, MontageToPlay);
             }
             else
             {
@@ -773,6 +809,29 @@ void UCP_Attacks::OnInterrupted()
 {
     if (GetOwner())
     {
+        // Owner가 IEnemyAIInterface를 구현했는지 확인
+        if (GetOwner()->GetClass()->ImplementsInterface(UEnemyAIInterface::StaticClass()))
+        {
+            // AttackEnd 호출
+            IEnemyAIInterface::Execute_AttackEnd(GetOwner(), CurrentAttackTarget);
+        }
+
+        // Owner가 IDamageableInterface를 구현했는지 확인
+        if (GetOwner()->GetClass()->ImplementsInterface(UDamageableInterface::StaticClass()))
+        {
+            // SetIsInterruptible 호출
+            IDamageableInterface::Execute_SetIsInterruptible(GetOwner(), true);
+        }
+    }
+}
+
+void UCP_Attacks::OnMontageInterrupted(UAnimMontage* Montage, bool bInterrupted)
+{
+    if (GetOwner())
+    {
+        UE_LOG(LogTemp, Display, TEXT("Binding Interrupted"));
+
+
         // Owner가 IEnemyAIInterface를 구현했는지 확인
         if (GetOwner()->GetClass()->ImplementsInterface(UEnemyAIInterface::StaticClass()))
         {

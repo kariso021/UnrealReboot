@@ -43,7 +43,7 @@ void AEnemyMelee::GroundSmashAttack(AActor* AttackTarget)
 	// AttackInfo 생성 및 초기화
 	FAttackInfo AttackInfo;
 	AttackInfo.AttackTarget = AttackTarget;
-	AttackInfo.Montage = nullptr; // 애니메이션 몽타주 설정 (필요하면 추가 가능)
+	AttackInfo.Montage = GroundSmashMontage; // 애니메이션 몽타주 설정 (필요하면 추가 가능)
 	AttackInfo.DamageInfo = DamageInfo;
 
 	// AttackComponent를 통해 Ground Smash 실행
@@ -64,7 +64,7 @@ void AEnemyMelee::ShortRangeAttack(AActor* AttackTarget)
 	// AttackInfo 생성 및 초기화
 	FAttackInfo AttackInfo;
 	AttackInfo.AttackTarget = AttackTarget;
-	AttackInfo.Montage = nullptr; // 애니메이션 몽타주 설정 (필요하면 추가 가능)
+	AttackInfo.Montage = SwordSlashMontage; // 애니메이션 몽타주 설정 (필요하면 추가 가능)
 	AttackInfo.DamageInfo = DamageInfo;
 
 	// AttackComponent를 통해 Ground Smash 실행
@@ -86,7 +86,7 @@ void AEnemyMelee::LongRangeAttack(AActor* AttackTarget)
 	// AttackInfo 생성 및 초기화
 	FAttackInfo AttackInfo;
 	AttackInfo.AttackTarget = AttackTarget;
-	AttackInfo.Montage = nullptr; // 애니메이션 몽타주 설정 (필요하면 추가 가능)
+	AttackInfo.Montage = SwordJumpAttackMontage; // 애니메이션 몽타주 설정 (필요하면 추가 가능)
 	AttackInfo.DamageInfo = DamageInfo;
 
 	// AttackComponent를 통해 Ground Smash 실행
@@ -108,7 +108,7 @@ void AEnemyMelee::SpinningAttack(AActor* AttackTarget)
 	// AttackInfo 생성 및 초기화
 	FAttackInfo AttackInfo;
 	AttackInfo.AttackTarget = AttackTarget;
-	AttackInfo.Montage = nullptr; // 애니메이션 몽타주 설정 (필요하면 추가 가능)
+	AttackInfo.Montage = SwordSpinningAttackMontage; // 애니메이션 몽타주 설정 (필요하면 추가 가능)
 	AttackInfo.DamageInfo = DamageInfo;
 
 	// AttackComponent를 통해 Ground Smash 실행
@@ -119,10 +119,78 @@ void AEnemyMelee::SpinningAttack(AActor* AttackTarget)
 //나중에 두개 다 만들자
 void AEnemyMelee::EquipWeapon()
 {
+	if (GetMesh() && UnSheathSwordMontage)
+	{
+		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+
+		if (AnimInstance)
+		{
+			float MontagePlayRate = 1.0f;
+			float MontageStartPosition = 0.0f;
+			FName MontageStartingSection = NAME_None;
+
+			// 플레이 성공적일시
+			float MontageLength = AnimInstance->Montage_Play(UnSheathSwordMontage, MontagePlayRate, EMontagePlayReturnType::MontageLength, MontageStartPosition);
+			bool bPlayedSuccessfully = MontageLength > 0.f;
+
+			if (bPlayedSuccessfully)
+			{
+
+				// EndDelegtate 여기서 바인드
+				FOnMontageEnded OnMontageEndedDelegate;
+				OnMontageEndedDelegate.BindUObject(this, &AEnemyMelee::UnSheath_MontageCompleted);
+
+
+
+				AnimInstance->Montage_SetEndDelegate(OnMontageEndedDelegate, UnSheathSwordMontage);
+
+				// Bind to Notify Begin and End for additional actions
+				AnimInstance->OnPlayMontageNotifyBegin.AddDynamic(this, &AEnemyMelee::OnNotifyBeginReceived_EquipWeapon);
+
+			}
+		}
+
+
+
+	}
 }
 
 void AEnemyMelee::UnEquipWeapon()
 {
+	if (GetMesh() && SheathSwordMontage)
+	{
+		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+
+		if (AnimInstance)
+		{
+			float MontagePlayRate = 1.0f;
+			float MontageStartPosition = 0.0f;
+			FName MontageStartingSection = NAME_None;
+
+			// 플레이 성공적일시
+			float MontageLength = AnimInstance->Montage_Play(SheathSwordMontage, MontagePlayRate, EMontagePlayReturnType::MontageLength, MontageStartPosition);
+			bool bPlayedSuccessfully = MontageLength > 0.f;
+
+			if (bPlayedSuccessfully)
+			{
+
+				// EndDelegtate 여기서 바인드
+				FOnMontageEnded OnMontageEndedDelegate;
+				OnMontageEndedDelegate.BindUObject(this, &AEnemyMelee::Sheath_MontageCompleted);
+
+
+
+				AnimInstance->Montage_SetEndDelegate(OnMontageEndedDelegate, SheathSwordMontage);
+
+				// Bind to Notify Begin and End for additional actions
+				AnimInstance->OnPlayMontageNotifyBegin.AddDynamic(this, &AEnemyMelee::OnNotifyBeginReceived_UnEquipWeapon);
+
+			}
+		}
+
+
+
+	}
 }
 
 
@@ -130,6 +198,73 @@ void AEnemyMelee::UnEquipWeapon()
 
 void AEnemyMelee::BlockTrigger()
 {
+}
+
+//-------------------------------------------MontageFunction
+
+void AEnemyMelee::UnSheath_MontageCompleted(UAnimMontage* Montage, bool bInterrupted)
+{
+	OnWeaponEquipped.Broadcast();
+}
+
+void AEnemyMelee::Sheath_MontageCompleted(UAnimMontage* Montage, bool bInterrupted)
+{
+	OnWeaponUnEquipped.Broadcast();
+}
+
+void AEnemyMelee::OnNotifyBeginReceived_EquipWeapon(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointPayload)
+{
+	if (NotifyName == "HoldSword")
+	{
+		if (WeaponBlueprint) // Blueprint 클래스가 설정되어 있는지 확인
+		{
+			// 무기 생성
+			FActorSpawnParameters SpawnParams;
+			SpawnParams.Owner = this; // 소유자를 설정
+			SpawnParams.Instigator = GetInstigator();
+
+			WeaponActor = GetWorld()->SpawnActor<AActor>(WeaponBlueprint, GetActorTransform(), SpawnParams);
+			if (WeaponActor)
+			{
+				// 소켓에 무기 부착
+				FAttachmentTransformRules AttachmentRules(EAttachmentRule::SnapToTarget, true);
+				WeaponActor->AttachToComponent(GetMesh(), AttachmentRules, FName("hand_r_sword_socket"));
+
+				// 상태 업데이트
+				IsWieldingWeapon = true;
+
+				UE_LOG(LogTemp, Log, TEXT("Weapon spawned and attached."));
+			}
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("WeaponBlueprint is not set!"));
+		}
+	}
+}
+
+void AEnemyMelee::OnNotifyBeginReceived_UnEquipWeapon(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointPayload)
+{
+	if (NotifyName == "DropSword")
+	{
+		if (WeaponActor)
+		{
+			// 생성된 액터 삭제
+			WeaponActor->Destroy();
+
+			// 상태 업데이트
+			IsWieldingWeapon = false;
+
+			// 포인터 초기화
+			WeaponActor = nullptr;
+
+			UE_LOG(LogTemp, Log, TEXT("Weapon destroyed."));
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("No weapon to destroy."));
+		}
+	}
 }
 
 

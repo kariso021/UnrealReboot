@@ -64,4 +64,10 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sensed")
     bool Sensed;
 
+    FCheckSensedStimulus()
+        : Stimulus(),
+        Sensed(false)
+    {
+    }
+
 };

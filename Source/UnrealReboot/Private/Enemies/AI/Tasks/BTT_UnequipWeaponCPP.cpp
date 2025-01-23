@@ -32,9 +32,13 @@ EBTNodeResult::Type UBTT_UnequipWeaponCPP::ExecuteTask(UBehaviorTreeComponent& O
 		return EBTNodeResult::Failed;
 	}
 
+	// EquipWeapon 함수 호출 (인터페이스 사용)
+	if (EnemyBase->GetClass()->ImplementsInterface(UEnemyAIInterface::StaticClass()))
+	{
+		IEnemyAIInterface::Execute_UnequipWeapon(EnemyBase);
+	}
 
-	EnemyBase->UnequipWeapon();
-
+	// Weapon Equipped 이벤트 바인딩
 	EnemyBase->OnWeaponUnEquipped.AddDynamic(this, &UBTT_UnequipWeaponCPP::OnFinishOnSheath);
 
 

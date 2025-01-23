@@ -23,13 +23,28 @@ AEnemyBase::AEnemyBase()
 	DamageSystemComponent = CreateDefaultSubobject<UDamageSystem>(TEXT("DamageSystemComponent"));
 	DamageSystemComponent->SetMaxhealth(100);
 	DamageSystemComponent->SetHealth(100);
+	TeamNumber = 1;
 
 }
+
+void AEnemyBase::PossessedBy(AController* NewController)
+{
+	Super::PossessedBy(NewController);
+}
+
+UBehaviorTree* AEnemyBase::GetBehaviorTree()
+{
+	return BehaviorTree;
+}
+
 
 // Called when the game starts or when spawned
 void AEnemyBase::BeginPlay()
 {
 	Super::BeginPlay();
+
+	
+
 
 	/*AICComp = Cast<AAIC_EnemyBaseCPP>(GetController());*///오래걸렸다... BaseEnemyPawn에서 Controller를 AICEnemyBase로 수정해서 사용하면 된다.
 	if (DamageSystemComponent)
@@ -181,12 +196,10 @@ float AEnemyBase::GetDefendRadius_Implementation()
 
 void AEnemyBase::EquipWeapon_Implementation()
 {
-
 }
 
 void AEnemyBase::UnequipWeapon_Implementation()
 {
-
 }
 
 void AEnemyBase::Attack_Implementation(AActor* AttackTarget)
@@ -226,7 +239,7 @@ bool AEnemyBase::AttackStart_Implementation(AActor* AttackTarget, int TokenNeede
 	{
 		if (IDamageableInterface::Execute_ReserveAttackToken(AttackTarget, TokenNeeded))
 		{
-			StoreAttackToken(AttackTarget, TokensUsedInCurrentAttack);
+			IEnemyAIInterface::Execute_StoreAttackToken(this, AttackTarget, TokensUsedInCurrentAttack * -1);
 			Attacking = false;
 			TokensUsedInCurrentAttack = TokenNeeded;
 			return true;
@@ -242,12 +255,15 @@ bool AEnemyBase::AttackStart_Implementation(AActor* AttackTarget, int TokenNeede
 
 void AEnemyBase::AttackEnd_Implementation(AActor* AttackTarget)
 {
+
+	//Test 용도로 여기다가 해둔것
+	UE_LOG(LogTemp, Display, TEXT("AttackEnd BroadCast"));
+	OnAttackEnd.Broadcast();
 	if (AttackTarget && AttackTarget->GetClass()->ImplementsInterface(UDamageableInterface::StaticClass()))
 	{
 		IDamageableInterface::Execute_ReturnAttackToken(AttackTarget, TokensUsedInCurrentAttack);
-		StoreAttackToken(AttackTarget, -1 * TokensUsedInCurrentAttack);
+		IEnemyAIInterface::Execute_StoreAttackToken(this,AttackTarget, TokensUsedInCurrentAttack*-1);
 		Attacking = false;
-		OnAttackEnd.Broadcast();
 	}
 }
 

@@ -13,5 +13,16 @@ UCLASS()
 class UBTT_MoveAlongPatrolRouteCPP : public UBTTaskNode
 {
 	GENERATED_BODY()
+
+
+protected:
+	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
+
+	/** Called when task is aborted */
+	virtual EBTNodeResult::Type AbortTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
+
+
+
+private:
 	
 };

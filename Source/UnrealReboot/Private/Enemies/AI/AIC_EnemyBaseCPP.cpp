@@ -19,6 +19,22 @@ AAIC_EnemyBaseCPP::AAIC_EnemyBaseCPP()//기본생성자
 	HearingConfig = CreateDefaultSubobject<UAISenseConfig_Hearing>(TEXT("HearingConfig"));
 	InitializeHearingConfig();
 
+	DamageSenseConfig= CreateDefaultSubobject<UAISenseConfig_Damage>(TEXT("DamageSenseConfig"));
+	InitializeDamageSenseConfig();
+
+	AIPerceptionComponent->SetDominantSense(UAISense_Sight::StaticClass());
+
+
+
+	// Blackboard Key 초기화
+	AttackTargetKeyName = "AttackTarget";                // Blackboard에 정의된 키 이름
+	StateKeyName = "State";                              // AI의 상태
+	PointOfInterestKeyName = "PointOfInterest";          // 관심 지점
+	AttackRadiusKeyName = "AttackRadius";                // 공격 반경
+	DefendRadiusKeyName = "DefendRadius";                // 방어 반경
+	DistanceToAttackTargetKeyName = "DistanceToAttackTarget"; // 공격 대상까지 거리
+
+
 	 //피해 감지는 설정 안해도 될듯
 
 	// 이벤트 핸들러 연결
@@ -33,24 +49,38 @@ AAIC_EnemyBaseCPP::AAIC_EnemyBaseCPP()//기본생성자
 void AAIC_EnemyBaseCPP::OnPossess(APawn* InPawn)
 {
 	Super::OnPossess(InPawn);
-
 	AEnemyBase* EnemyBase = Cast<AEnemyBase>(InPawn);
-	if (EnemyBase && EnemyBase->BehaviorTree)
+	if (UBehaviorTree* const Tree = EnemyBase->GetBehaviorTree())
 	{
-		// Behavior Tree 실행
-		if (!RunBehaviorTree(EnemyBase->BehaviorTree))
+		// Blackboard 사용 및 초기화
+		if (!UseBlackboard(Tree->BlackboardAsset, BlackboardComp))
 		{
-			UE_LOG(LogTemp, Error, TEXT("Failed to run Behavior Tree!"));
+			UE_LOG(LogTemp, Error, TEXT("Failed to initialize Blackboard with the provided asset!"));
 			return;
 		}
 
-		// Blackboard 초기화
+		// UseBlackboard 이후에 BlackboardComp 가져오기
 		BlackboardComp = GetBlackboardComponent();
 		if (!BlackboardComp)
 		{
-			UE_LOG(LogTemp, Error, TEXT("Failed to initialize Blackboard Component!"));
+			UE_LOG(LogTemp, Error, TEXT("Blackboard Component is null after UseBlackboard!"));
 			return;
 		}
+
+		Blackboard = BlackboardComp;
+
+		// BehaviorTree 실행
+		if (!RunBehaviorTree(Tree))
+		{
+			UE_LOG(LogTemp, Error, TEXT("Failed to run BehaviorTree!"));
+			return;
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Enemy Actor does not have a valid Behavior Tree!"));
+	}
+
 
 		// InPawn이 EnemyAIInterface를 구현했는지 확인
 		if (InPawn && InPawn->GetClass()->ImplementsInterface(UEnemyAIInterface::StaticClass()))
@@ -82,11 +112,7 @@ void AAIC_EnemyBaseCPP::OnPossess(APawn* InPawn)
 
 		// 주기적으로 CheckForgottenSeenActor 호출
 		GetWorldTimerManager().SetTimer(CheckForgottenActorsTimer, this, &AAIC_EnemyBaseCPP::CheckForgottenSeenActor, 0.5f, true);
-	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("No Valid Behavior Tree in Enemy Actor"));
-	}
+
 }
 
 void AAIC_EnemyBaseCPP::OnUnPossess()
@@ -101,7 +127,11 @@ void AAIC_EnemyBaseCPP::BeginPlay()
 {
 	Super::BeginPlay();
 
-	AIPerceptionComponent->OnPerceptionUpdated.AddDynamic(this, &AAIC_EnemyBaseCPP::OnPerceptionUpdated);
+	if (AIPerceptionComponent)
+	{
+		AIPerceptionComponent->OnPerceptionUpdated.AddDynamic(this, &AAIC_EnemyBaseCPP::OnPerceptionUpdated);//이미 언리얼에서 바인딩된것
+		UE_LOG(LogTemp, Log, TEXT("Successfully bound OnPerceptionUpdated delegate."));
+	}
 
 }
 
@@ -123,20 +153,47 @@ void AAIC_EnemyBaseCPP::OnPerceptionUpdated(const TArray<AActor*>& UpdatedActors
 //-----------------------------------ConfigOfSense
 void AAIC_EnemyBaseCPP::InitializeSightConfig()
 {
-	SightConfig->SightRadius = 1500.0f;
-	SightConfig->LoseSightRadius = 1600.0f;
-	SightConfig->PeripheralVisionAngleDegrees = 90.0f;
+	SightConfig->SightRadius = 1500.0f; // 시각 감지 반경
+	SightConfig->LoseSightRadius = 2000.0f; // 시야를 잃는 반경
+
+	// 시야각 설정 (화각의 반값)
+	SightConfig->PeripheralVisionAngleDegrees = 60.0f; // 총 시야각은 120도
+
+	// 감지 소속 설정 (적 감지 등)
+	SightConfig->DetectionByAffiliation.bDetectEnemies = true; // 적 감지
+	SightConfig->DetectionByAffiliation.bDetectFriendlies = true; // 아군 감지
+	SightConfig->DetectionByAffiliation.bDetectNeutrals = true; // 중립 감지
+
+
+	// 감지의 최대 유효 시간
+	SightConfig->SetMaxAge(20.0f); // 감지 정보가 20초 동안 유효
+
 	AIPerceptionComponent->ConfigureSense(*SightConfig);
 
 }
 
 void AAIC_EnemyBaseCPP::InitializeHearingConfig()
 {
-	HearingConfig->HearingRange = 2500.0f;
-	HearingConfig->bUseLoSHearing = true;  // Line of Sight 청각을 사용할지 설정
-	HearingConfig->LoSHearingRange = 1800.0f;
+	HearingConfig->HearingRange = 500.0f;
+	HearingConfig->bUseLoSHearing = false;  // Line of Sight 청각을 사용할지 설정
+
+
+	HearingConfig->DetectionByAffiliation.bDetectEnemies = true; // 적 감지
+	HearingConfig->DetectionByAffiliation.bDetectFriendlies = true; // 아군 감지 안 함
+	HearingConfig->DetectionByAffiliation.bDetectNeutrals = true; // 중립 감지 안 함
+	HearingConfig->SetMaxAge(3.0f);
+
+
 	AIPerceptionComponent->ConfigureSense(*HearingConfig);
 
+}
+
+void AAIC_EnemyBaseCPP::InitializeDamageSenseConfig()
+{
+	DamageSenseConfig->SetMaxAge(5.0f);
+	AIPerceptionComponent->ConfigureSense(*DamageSenseConfig);
+
+	// 디버그 색상 설정
 }
 
 bool AAIC_EnemyBaseCPP::MatchSenseType(const FAISenseID& StimulusType, EM_AISense SenseType) const//해당 함수 멤버변수 안바꿔야겠지

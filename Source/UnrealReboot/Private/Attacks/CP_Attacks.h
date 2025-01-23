@@ -138,6 +138,9 @@ public:
 	UFUNCTION()
 	void OnInterrupted();
 
+	UFUNCTION()
+	void OnMontageInterrupted(UAnimMontage* Montage, bool bInterrupted);
+
 protected:
 	//for Attack Info Matching
 	//Protect 에서 이걸 사용할까? 모르겠네

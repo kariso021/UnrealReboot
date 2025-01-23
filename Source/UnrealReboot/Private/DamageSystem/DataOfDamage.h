@@ -52,6 +52,17 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damage Info")
     bool ShouldForceInterrupt;
 
+    FDamageInfo()
+        : Amount(0.0f),
+        DamageType(EM_DamageType::None),
+        DamageResponse(EM_DamageResponse::None),
+        ShouldDamageInvincible(false),
+        CanBeBlocked(false),
+        CanBeParried(false),
+        ShouldForceInterrupt(false)
+    {
+    }
+
 
 
 };
