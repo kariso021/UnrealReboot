@@ -3,13 +3,16 @@
 
 #include "Attacks/CP_Attacks.h"
 #include "DrawDebugHelpers.h"//라인트레이스 디버깅용 인클루드 함수
-#include "Components/PrimitiveComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include <Kismet/KismetSystemLibrary.h>
 #include "GameFramework/Character.h"
 #include "Enemies/EnemyAIInterface.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Enemies/EnemyAIInterface.h"
+#include "Perception/AIPerceptionComponent.h"
+#include "Components/CapsuleComponent.h"
+#include "Perception/AISenseConfig_Damage.h"
+#include "Components/CapsuleComponent.h"
 #include <AOE/AOEBase.h>
 #include <Kismet/GameplayStatics.h>
 
@@ -177,39 +180,69 @@ void UCP_Attacks::FireBullet(FVector TraceStart, FVector TraceEnd, FDamageInfo& 
 
 }
 
-void UCP_Attacks::MagicSpell(FTransform& SpawnTransform, AActor* Target, FDamageInfo& DamageInfo, bool Alt)
+void UCP_Attacks::MagicSpell(FTransform& SpawnTransform, AActor* Target, FDamageInfo& DamageInfo, TSubclassOf<AProjectileBase> ClassToSpawn)
 {
-    UWorld* World = GetWorld();
-    if (World != nullptr)
+    if (!ClassToSpawn)
     {
-        AProjectileBase* Projectile = World->SpawnActor<AProjectileBase>(
-            AProjectileBase::StaticClass(),
-            SpawnTransform.GetLocation(),
-            SpawnTransform.GetRotation().Rotator(),
-            FActorSpawnParameters());
+        UE_LOG(LogTemp, Error, TEXT("ClassToSpawn is null!"));
+        return;
+    }
 
-        if (Projectile != nullptr)
+    UWorld* World = GetWorld();
+    if (!World)
+    {
+        UE_LOG(LogTemp, Error, TEXT("World is null!"));
+        return;
+    }
+
+    CurrentDamageInfo = DamageInfo;
+
+    // FActorSpawnParameters 설정
+    FActorSpawnParameters SpawnParams;
+    SpawnParams.Name = NAME_None;
+    SpawnParams.Owner = GetOwner();
+    SpawnParams.Instigator = Cast<APawn>(GetOwner());
+    SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+    // 디버깅: SpawnTransform 확인
+    UE_LOG(LogTemp, Warning, TEXT("SpawnTransform Location: %s"), *SpawnTransform.GetLocation().ToString());
+
+    // 발사체 스폰
+    AProjectileBase* SpawnedProjectile = World->SpawnActor<AProjectileBase>(ClassToSpawn, SpawnTransform, SpawnParams);
+
+    if (SpawnedProjectile)
+    {
+        // 발사체 초기화
+        SpawnedProjectile->InitializeProjectile(1000.0f, 0.0f, false, Target);
+
+        // 발사체가 자신의 소유자를 무시하도록 설정
+        AActor* OwnerActor = GetOwner();
+        ACharacter* OwnerCharacter = Cast<ACharacter>(OwnerActor);
+        if (OwnerActor)
         {
-            // 매핑 추가
-            DamageInfoMappings.Add(FDamageInfoMapping(Projectile, DamageInfo));
-
-            // 프로젝타일의 속도 설정
-
-            // 이벤트 핸들러 설정
-            Projectile->OnProjectileImpact.AddDynamic(this, &UCP_Attacks::OnProjectileHit);
-
-            // 블루프린트에서 보여준 'Ignore Actor when Moving' 노드에 해당하는 부분
-            UPrimitiveComponent* ProjectileComponent = Projectile->FindComponentByClass<UPrimitiveComponent>();
-            if (ProjectileComponent != nullptr)
+            // 발사체의 충돌 컴포넌트에서 IgnoreActorWhenMoving 호출
+            UCapsuleComponent* ProjectileCollisionComponent = OwnerCharacter->GetCapsuleComponent();
+            if (ProjectileCollisionComponent)
             {
-                // 소유자를 무시하도록 설정
-                AActor* OwnerActor = GetOwner();
-                if (OwnerActor)
-                {
-                    ProjectileComponent->MoveIgnoreActors.Add(OwnerActor);
-                }
+                ProjectileCollisionComponent->IgnoreActorWhenMoving(OwnerCharacter, true);
+
+                UE_LOG(LogTemp, Warning, TEXT("Projectile is set to ignore its owner: %s"), *OwnerCharacter->GetName());
+            }
+            else
+            {
+                UE_LOG(LogTemp, Error, TEXT("Projectile collision component is null!"));
             }
         }
+
+        // 충돌 이벤트 바인딩
+        SpawnedProjectile->OnProjectileImpact.AddDynamic(this, &UCP_Attacks::OnProjectileHit);
+
+        UE_LOG(LogTemp, Warning, TEXT("Projectile spawned: %s"), *SpawnedProjectile->GetName());
+
+    }
+    else
+    {
+        UE_LOG(LogTemp, Error, TEXT("Failed to spawn projectile! ClassToSpawn: %s"), *ClassToSpawn->GetName());
     }
 }
 
@@ -678,20 +711,27 @@ void UCP_Attacks::BarrageMagicSpell(FAttackInfo& AttackInfo)
 
 void UCP_Attacks::OnProjectileHit(AActor* OtherActor, const FHitResult& Hit)
 {
-    for (int32 Index = 0; Index < DamageInfoMappings.Num(); ++Index)
+    FDamageInfo DamageInfo=CurrentDamageInfo;
+    if (OtherActor && OtherActor->GetClass()->ImplementsInterface(UDamageableInterface::StaticClass()))
     {
-        if (DamageInfoMappings[Index].Projectile == OtherActor)
-        {
-            // 데미지 정보 사용
-            FDamageInfo& DamageInfo = DamageInfoMappings[Index].DamageInfo;
-            // 데미지 처리 로직...
-
-            // 사용 후 매핑 제거
-            DamageInfoMappings.RemoveAt(Index);
-            break;
-        }
+        // TakeDamage호출
+        IDamageableInterface::Execute_TakeDamage(OtherActor,DamageInfo,GetOwner());
+    }
+    else
+    {
+        return;
     }
 
+
+    UAISense_Damage::ReportDamageEvent(
+        this,             // WorldContextObject
+        OtherActor,     // 공격받은 액터
+        GetOwner(),       // 공격한 액터
+        DamageInfo.Amount,     // 데미지량
+        GetOwner()->GetActorLocation(),    // 이벤트 발생 위치 (보통 Instigator 위치)
+        Hit.ImpactPoint,      // 충돌 위치
+        NAME_None         // 태그 (필요하면 지정 가능)
+    );
     OnAttackEnd.Broadcast();
 }
 
@@ -781,7 +821,7 @@ void UCP_Attacks::OnNotifyBeginReceived_BasicMageSpell(FName NotifyName, const F
        TempLocation= CurrentMeshComponent->GetSocketLocation("RightHand");
        FTransform TempTransform(FRotator::ZeroRotator, TempLocation, FVector(1.0f, 1.0f, 1.0f));
 
-        MagicSpell(TempTransform,CurrentAttackInfo.AttackTarget,CurrentAttackInfo.DamageInfo,false);
+        MagicSpell(TempTransform,CurrentAttackInfo.AttackTarget,CurrentAttackInfo.DamageInfo,NULL);//이부분에서 어떤 projectile class 를 쓸지 정해줘야한다.
     }
 }
 void UCP_Attacks::OnNotifyBeginReceived_BarrageMagicSpell(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointPayload)
@@ -829,7 +869,6 @@ void UCP_Attacks::OnMontageInterrupted(UAnimMontage* Montage, bool bInterrupted)
 {
     if (GetOwner())
     {
-        UE_LOG(LogTemp, Display, TEXT("Binding Interrupted"));
 
 
         // Owner가 IEnemyAIInterface를 구현했는지 확인

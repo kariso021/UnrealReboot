@@ -257,7 +257,7 @@ void AEnemyBase::AttackEnd_Implementation(AActor* AttackTarget)
 {
 
 	//Test 용도로 여기다가 해둔것
-	UE_LOG(LogTemp, Display, TEXT("AttackEnd BroadCast"));
+	//UE_LOG(LogTemp, Display, TEXT("AttackEnd BroadCast"));
 	OnAttackEnd.Broadcast();
 	if (AttackTarget && AttackTarget->GetClass()->ImplementsInterface(UDamageableInterface::StaticClass()))
 	{

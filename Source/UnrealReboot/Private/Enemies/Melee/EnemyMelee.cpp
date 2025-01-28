@@ -186,6 +186,9 @@ void AEnemyMelee::UnEquipWeapon()
 				AnimInstance->OnPlayMontageNotifyBegin.AddDynamic(this, &AEnemyMelee::OnNotifyBeginReceived_UnEquipWeapon);
 
 			}
+			else {
+
+			}
 		}
 
 

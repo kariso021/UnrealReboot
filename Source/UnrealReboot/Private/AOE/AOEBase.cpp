@@ -84,11 +84,22 @@ void AAOEBase::SetRadius(float Rad)
 // Called when the game starts or when spawned
 void AAOEBase::BeginPlay()
 {
-	Super::BeginPlay();
-	if (triggerOnBeginPlay)
-	{
-		;//Add Delay and Trigger
-	}
+    Super::BeginPlay();
+
+    if (triggerOnBeginPlay)
+    {
+        // 딜레이 타이머 설정
+        FTimerHandle TimerHandle;
+        float DelayTime = 0.1f; // 2초 딜레이 예제 (필요에 따라 변경 가능)
+
+        GetWorld()->GetTimerManager().SetTimer(
+            TimerHandle,
+            this,
+            &AAOEBase::Trigger,
+            DelayTime,
+            false // 반복 실행 여부: false = 한 번만 실행
+        );
+    }
 
 
 

@@ -130,7 +130,6 @@ void AAIC_EnemyBaseCPP::BeginPlay()
 	if (AIPerceptionComponent)
 	{
 		AIPerceptionComponent->OnPerceptionUpdated.AddDynamic(this, &AAIC_EnemyBaseCPP::OnPerceptionUpdated);//이미 언리얼에서 바인딩된것
-		UE_LOG(LogTemp, Log, TEXT("Successfully bound OnPerceptionUpdated delegate."));
 	}
 
 }

@@ -11,6 +11,7 @@
 #include <Perception/AISense.h>
 #include "DamageSystem/DamageInfoMapping.h" //Projectile과 DamageInfo를 연결시켜줒기 위한 라이브러리 모음
 #include "DamageSystem/AOEDamageInfoMapping.h"
+#include "../Projectile/ProjectileBase.h"
 
 #include "CP_Attacks.generated.h"
 
@@ -53,7 +54,7 @@ public:
 	void FireBullet(FVector TraceStart,FVector TraceEnd,FDamageInfo &DamageInfo);
 
 	UFUNCTION()
-	void MagicSpell(FTransform& SpawnTransform, AActor* Target, FDamageInfo& DamageInfo,bool Alt);
+	void MagicSpell(FTransform& SpawnTransform, AActor* Target, FDamageInfo& DamageInfo, TSubclassOf<AProjectileBase> ClassofSpawn);
 
 	UFUNCTION()
 	void AOEDamage(float Radius, FDamageInfo& DamageInfo);
@@ -145,6 +146,9 @@ protected:
 	//for Attack Info Matching
 	//Protect 에서 이걸 사용할까? 모르겠네
 	FAttackInfo CurrentAttackInfo;
+	FDamageInfo CurrentDamageInfo;
+
+
 	float CurrentRadius;
 	float CurrentLength;
 	USkeletalMeshComponent* CurrentMeshComponent;//Current Mesh 임시저장소 but 임시로 써둔거고 나중에 Mapping 을 통해서 바꿔줄것
@@ -159,7 +163,10 @@ private:
 
 	ACharacter* CharacterRef;// 캐릭터 레퍼런스 받아오기 위해 선언
 
-	TArray<FDamageInfoMapping> DamageInfoMappings;
+	TMap<AProjectileBase*, FDamageInfo> ProjectileDamageMap;
 	TOptional<FAOEDamageInfoMapping> AOEDamageInfoMapping;
+
+	UPROPERTY()
+	TArray<AProjectileBase*> ActiveProjectiles;
 		
 };

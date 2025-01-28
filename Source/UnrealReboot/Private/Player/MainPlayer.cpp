@@ -5,6 +5,7 @@
 #include "TimerManager.h"
 #include <GameFramework/CharacterMovementComponent.h>
 #include <Kismet/GameplayStatics.h>
+#include <Kismet/KismetMathLibrary.h>
 
 // Sets default values
 AMainPlayer::AMainPlayer()
@@ -50,9 +51,13 @@ AMainPlayer::AMainPlayer()
 
     AttacksComponent=CreateDefaultSubobject<UCP_Attacks>(TEXT("AttacksComponent)"));
 
-    //// Forward arrow <- Arrow 가 제일 문제임 이거 넣지마
-    //ForwardArrow = CreateDefaultSubobject<UArrowComponent>(TEXT("ForwardArrow"));
-    //ForwardArrow->SetupAttachment(RootComponent);
+    
+    //------------Melee Attack 시작 전
+
+    bMeleeAttackExcute = false;
+    bRangeAttackExcute = false;
+
+
 
 
 }
@@ -82,7 +87,7 @@ void AMainPlayer::OnConstruction(const FTransform& Transform)
     }
     if (GetMesh())
     {
-        const FName BoneToHide = TEXT("BoneNameHere");
+        const FName BoneToHide = TEXT("Gun");
         GetMesh()->HideBoneByName(BoneToHide, EPhysBodyOp::PBO_None);
     }
 }
@@ -118,6 +123,7 @@ void AMainPlayer::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 
         EnhancedInputComponent->BindAction(Slot3Action, ETriggerEvent::Triggered, this, &AMainPlayer::Slot3);
 
+        EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Triggered, this, &AMainPlayer::AcceptAttack);
 
     }
 
@@ -133,17 +139,21 @@ void AMainPlayer::ChangeStance(EPlayerStance NewStance)
     OldStance = Stance; 
     Stance = NewStance; 
 
+    UnarmedStance();
+
     switch (NewStance)
     {
     case EPlayerStance::Unarmed:
         UnarmedStance();
+        GetMesh()->HideBoneByName("Gun", EPhysBodyOp::PBO_None);
         break;
     case EPlayerStance::Ranged:
         EnterRangedStance();
-        UE_LOG(LogTemp, Display, TEXT("RangeStance !"));
+        GetMesh()->UnHideBoneByName("Gun");
         break;
     case EPlayerStance::Melee:
         MeleeStance();
+        GetMesh()->HideBoneByName("Gun", EPhysBodyOp::PBO_None);
         break;
     default:
         break;
@@ -397,12 +407,119 @@ void AMainPlayer::ResetBlock()
 
 void AMainPlayer::MeleeAttack()
 {
+    if (Stance == EPlayerStance::Melee&&(!bMeleeAttackExcute))
+    {
+        
+        PerformMeleeAttack();
+    }
+
+}
+
+void AMainPlayer::ShootRangeAttack() //Same as RangeAttack
+{
+    if (Stance == EPlayerStance::Ranged && (!bRangeAttackExcute))
+    {
+
+        PerformRangeAttack();
+    }
+
+}
+
+void AMainPlayer::PerformMeleeAttack()
+{
+    bMeleeAttackExcute = true;
+    attacking = true;
+    if (!isWithinResumeComboWindow)
+    {
+        if(GetMesh()&&SwordComboMontage01)
+        {
+            UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+
+            if (AnimInstance)
+            {
+                float MontagePlayRate = 1.0f;
+                float MontageStartPosition = 0.0f;
+                FName MontageStartingSection = NAME_None;
+
+                // 플레이 성공적일시
+                float MontageLength = AnimInstance->Montage_Play(SwordComboMontage01, MontagePlayRate, EMontagePlayReturnType::MontageLength, MontageStartPosition);
+                bool bPlayedSuccessfully = MontageLength > 0.f;
+
+                if (bPlayedSuccessfully)
+                {
+                    if (MontageStartingSection != "Slash")
+                    {
+                        AnimInstance->Montage_JumpToSection(MontageStartingSection, SwordComboMontage01);
+                    }
+
+
+                    // Complete 을 담당하는 EndDelegate
+                    FOnMontageEnded OnMontageEndedDelegate;
+                    OnMontageEndedDelegate.BindUObject(this, &AMainPlayer::OnMontageCompleted_SwordCombo);
+
+
+                    //여기서 엔딩하는 신호를 보내줌
+                    AnimInstance->Montage_SetEndDelegate(OnMontageEndedDelegate, SwordComboMontage01);
+
+                    // Bind to Notify Begin and End for additional actions
+                    AnimInstance->OnPlayMontageNotifyBegin.AddDynamic(this, &AMainPlayer::OnNotifyBeginReceived_SwordCombo1);
+                    AnimInstance->OnPlayMontageNotifyEnd.AddDynamic(this, &AMainPlayer::OnNotifyEndReceived_SwordCombo1);
+
+                }
+            }
+        }
+    }
+    else {
+        bCanResumeCombo = true;
+    }
+
+
+}
+
+void AMainPlayer::PerformRangeAttack()
+{
+    canMove = false;
+    attacking = true;
+
+    UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+
+    if (AnimInstance)
+    {
+        float MontagePlayRate = 1.0f;
+        float MontageStartPosition = 0.0f;
+        FName MontageStartingSection = NAME_None;
+
+        // 플레이 성공적일시
+        float MontageLength = AnimInstance->Montage_Play(ShootingMontage, MontagePlayRate, EMontagePlayReturnType::MontageLength, MontageStartPosition);
+        bool bPlayedSuccessfully = MontageLength > 0.f;
+
+        if (bPlayedSuccessfully)
+        {
+            // Complete 을 담당하는 EndDelegate
+            FOnMontageEnded OnMontageEndedDelegate;
+            OnMontageEndedDelegate.BindUObject(this, &AMainPlayer::OnMontageCompleted_RangeShooting);
+
+
+            //여기서 엔딩하는 신호를 보내줌
+            AnimInstance->Montage_SetEndDelegate(OnMontageEndedDelegate, ShootingMontage);
+
+            // Bind to Notify Begin and End for additional actions
+            AnimInstance->OnPlayMontageNotifyBegin.AddDynamic(this, &AMainPlayer::OnNotifyBeginReceived_RangeShooting);
+
+        }
+    }
+
 
 }
 
 void AMainPlayer::ResetMeleeAttack()
 {
+    bMeleeAttackExcute = false;
+}
 
+void AMainPlayer::ResetRangeAttack()
+{
+    bRangeAttackExcute = false;
 }
 
 void AMainPlayer::Reload()
@@ -490,7 +607,7 @@ void AMainPlayer::MeleeStance()
 
         CharMovement->MaxWalkSpeed = meleeWalkSpeed;
     }
-    EquipWeapon(WeaponSwordClass, "hand_r_sword_socket");
+    EquipWeapon(WeaponSwordClass, "sword_r");
 
 }
 
@@ -550,25 +667,177 @@ void AMainPlayer::Look(const FInputActionValue& Value)
 
 void AMainPlayer::Slot1(const FInputActionValue& Value)
 {
-    UE_LOG(LogTemp, Display, TEXT("Slot1 Selected"));
     ChangeStance(EPlayerStance::Unarmed);
 }
 
 void AMainPlayer::Slot2(const FInputActionValue& Value)
 {
-    UE_LOG(LogTemp, Display, TEXT("Slot2 Selected"));
     ChangeStance(EPlayerStance::Ranged);
 }
 
 void AMainPlayer::Slot3(const FInputActionValue& Value)
 {
-    UE_LOG(LogTemp, Display, TEXT("Slot3 Selected"));
     ChangeStance(EPlayerStance::Melee);
 }
 
+void AMainPlayer::AcceptAttack(const FInputActionValue& Value)
+{
+    switch (Stance)
+    {
+    case EPlayerStance::Unarmed:
+        break;
+    case EPlayerStance::Ranged:
+        ShootRangeAttack();
+        break;
+    case EPlayerStance::Melee:
+        MeleeAttack();
+        break;
+    default:
+        break;
+    }
+
+
+}
+
+//----------MontageFunction
+
+void AMainPlayer::OnNotifyBeginReceived_SwordCombo1(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointPayload)
+{
+    if (NotifyName == "Slash")
+    {
+
+    }
+
+    if (NotifyName == "AOESlash")
+    {
+
+    }
+
+    if (NotifyName == "ResumeComboWindow")
+    {
+        isWithinResumeComboWindow = true;
+        bCanResumeCombo = false;
+        ResetMeleeAttack();
+    }
+}
+
+void AMainPlayer::OnNotifyEndReceived_SwordCombo1(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointPayload)
+{
+    if (NotifyName == "ResumeComboWindow")
+    {
+        isWithinResumeComboWindow = false;
+        if (!bCanResumeCombo)
+        {
+            StopAnimMontage(SwordComboMontage01);
+        }
+    }
+}
+
+void AMainPlayer::OnMontageCompleted_SwordCombo(UAnimMontage* Montage, bool bInterrupted)
+{
+    OnInterrupted_SwordCombo();
+}
+
+void AMainPlayer::OnInterrupted_SwordCombo()
+{
+    ResetMeleeAttack();
+    attacking = false;
+    isWithinResumeComboWindow = false;
+}
+
+void AMainPlayer::OnNotifyBeginReceived_RangeShooting(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointPayload)
+{
+    if (NotifyName == "Fire")
+    {
+        // Follow Camera의 위치와 방향을 가져옴
+        FVector CameraLocation = FollowCamera->GetComponentLocation();
+        FVector CameraForwardVector = FollowCamera->GetForwardVector();
+
+        // 라인 트레이스 시작 위치와 끝 위치 설정
+        FVector Start = CameraLocation;
+        FVector End = Start + (CameraForwardVector * 10000.0f); // 10000 단위 거리 설정
+
+        // HitResult 구조체 선언 (충돌 정보 저장)
+        FHitResult HitResult;
+
+        // 충돌 채널 설정
+        ECollisionChannel TraceChannel = ECC_Visibility;
+
+        // 충돌 무시 설정 (자기 자신)
+        FCollisionQueryParams Params;
+        Params.AddIgnoredActor(this); // 자기 자신을 충돌 검사에서 제외
+
+        // 라인 트레이스 수행
+        bool bHit = GetWorld()->LineTraceSingleByChannel(
+            HitResult, // 충돌 결과
+            Start,     // 시작 위치
+            End,       // 끝 위치
+            TraceChannel, // 트레이스 채널
+            Params     // 충돌 무시 설정
+        );
+
+        // 충돌 결과 확인
+        FVector TargetLocation;
+
+        if (bHit)
+        {
+            TargetLocation = HitResult.ImpactPoint; // 충돌 지점
+        }
+        else
+        {
+            TargetLocation = End; // 충돌하지 않으면 최대 거리
+        }
+
+        // 손 소켓 위치 가져오기
+        USkeletalMeshComponent* MeshComponent = GetMesh();
+        if (!MeshComponent)
+        {
+            UE_LOG(LogTemp, Warning, TEXT("Mesh Component not found!"));
+            return;
+        }
+
+        FVector HandSocketLocation = MeshComponent->GetSocketLocation(FName("hand_r")); // 소켓 이름: "hand_r"
+
+        // 방향 계산 (Find Look at Rotation)
+        FRotator SpawnTransformRotation = UKismetMathLibrary::FindLookAtRotation(HandSocketLocation, TargetLocation);
+
+        FVector SpawnTransformScale = FVector(1.0f, 1.0f, 1.0f);//스케일
+
+        FTransform ShootingTransform(SpawnTransformRotation, HandSocketLocation, SpawnTransformScale);
+
+        FDamageInfo ShootingDamageInfo;
+        ShootingDamageInfo.Amount = 20.0f;
+        ShootingDamageInfo.CanBeBlocked = true;
+        ShootingDamageInfo.CanBeParried = false;
+        ShootingDamageInfo.DamageResponse = EM_DamageResponse::None;
+        ShootingDamageInfo.DamageType = EM_DamageType::Projectile;
+        ShootingDamageInfo.ShouldForceInterrupt = false;
+        ShootingDamageInfo.ShouldDamageInvincible = false;
+
+        AttacksComponent->MagicSpell(ShootingTransform, NULL, ShootingDamageInfo, ProjectileBullet);
+
+
+
+    }
+}
+
+void AMainPlayer::OnMontageCompleted_RangeShooting(UAnimMontage* Montage, bool bInterrupted)
+{
+    OnInterrupted_RangeShooting();
+}
+
+void AMainPlayer::OnInterrupted_RangeShooting()
+{
+    canMove = true;
+    attacking = false;
+    ResetRangeAttack();
+}
+
+//--------------------------Dodge
+
 void AMainPlayer::Dodge(const FInputActionValue& Value)
 {
-
+    
 }
 
 //-----------------------------------------------------------------------------------------

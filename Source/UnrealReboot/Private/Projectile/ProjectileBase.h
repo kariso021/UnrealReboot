@@ -8,6 +8,7 @@
 #include <Components/ArrowComponent.h>
 #include <GameFramework/ProjectileMovementComponent.h>
 #include <Particles/ParticleSystem.h>
+#include "../DamageSystem/DataOfDamage.h"
 #include <Sound/SoundBase.h>
 #include "ProjectileBase.generated.h"
 
@@ -21,6 +22,8 @@ class AProjectileBase : public AActor
 public:	
 	// Sets default values for this actor's properties
 	AProjectileBase();
+
+	virtual void OnConstruction(const FTransform& Transform) override;
 
 protected:
 	// Called when the game starts or when spawned
@@ -39,6 +42,8 @@ public:
 
 	UPROPERTY(VisibleAnywhere, Category = "Components")
 	UProjectileMovementComponent* ProjectileMovement;
+
+	void InitializeProjectile(float InputSpeed, float InputGravity, bool InputIsHoming, AActor* InputTarget);
 
 
 
@@ -80,7 +85,7 @@ public:
 
 	//----------------------------------------Events
 	UFUNCTION()
-	void RotateTotarget();
+	void RotateToTarget();
 
 	//Visual Effect
 	UFUNCTION()

@@ -72,7 +72,6 @@ EBTNodeResult::Type UBTT_MeleeAttackCPP::ExecuteTask(UBehaviorTreeComponent& Own
     // 공격 종료 이벤트 바인딩 (먼저 수행)
     if (!EnemyBase->OnAttackEnd.IsAlreadyBound(this, &UBTT_MeleeAttackCPP::OnAttackFinished))
     {
-        UE_LOG(LogTemp, Log, TEXT("Binding OnAttackEnd event."));
         EnemyBase->OnAttackEnd.AddDynamic(this, &UBTT_MeleeAttackCPP::OnAttackFinished);
     }
 
@@ -153,7 +152,6 @@ void UBTT_MeleeAttackCPP::OnAttackFinished()
         // 이벤트 바인딩 해제 (메모리 누수 방지)
         if (EnemyBase)
         {
-            UE_LOG(LogTemp, Log, TEXT("Unbinding OnAttackEnd event."));
             EnemyBase->OnAttackEnd.RemoveDynamic(this, &UBTT_MeleeAttackCPP::OnAttackFinished);
         }
 

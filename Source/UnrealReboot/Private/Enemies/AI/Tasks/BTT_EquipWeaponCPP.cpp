@@ -71,7 +71,6 @@ void UBTT_EquipWeaponCPP::OnWeaponEquipped()
         // 이벤트 바인딩 해제
         if (EnemyBase)
         {
-            UE_LOG(LogTemp, Log, TEXT("Unbinding OnWeaponEquipped event for EnemyBase: %s"), *EnemyBase->GetName());
             EnemyBase->OnWeaponEquipped.RemoveDynamic(this, &UBTT_EquipWeaponCPP::OnWeaponEquipped);
         }
 

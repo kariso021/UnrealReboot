@@ -49,7 +49,6 @@ EBTNodeResult::Type UBTT_DefaultAttackCPP::ExecuteTask(UBehaviorTreeComponent& O
     // 공격 종료 이벤트 바인딩 (먼저 수행)
     if (!EnemyBase->OnAttackEnd.IsAlreadyBound(this, &UBTT_DefaultAttackCPP::OnAttackFinished))
     {
-        UE_LOG(LogTemp, Log, TEXT("Binding OnAttackEnd event."));
         EnemyBase->OnAttackEnd.AddDynamic(this, &UBTT_DefaultAttackCPP::OnAttackFinished);
     }
     else

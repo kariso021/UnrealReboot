@@ -21,6 +21,7 @@
 #include "InputMappingContext.h"
 #include "DamageSystem/DamageSystem.h"//DamageSystem
 #include "Weapon/WeaponBase.h"
+#include "../Projectile/ProjectileBase.h"
 #include "MainPlayer.generated.h"
 
 UCLASS()
@@ -166,14 +167,32 @@ public:
 	void MeleeAttack();
 
 	UFUNCTION()
+	void ShootRangeAttack();
+	
+	void PerformMeleeAttack();
+	void PerformRangeAttack();
+
+	UFUNCTION()
 	void ResetMeleeAttack();
+
+	UFUNCTION()
+	void ResetRangeAttack();
 
 	UFUNCTION()
 	void Reload();
 
 	//-----------------------------------------------------Source of Montage---------------------------
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta = (AllowPrivateAccess = "true"))
 	UAnimMontage* MontageBlock;
+
+	// 블루프린트에서 설정 가능한 애니메이션 몽타주
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta = (AllowPrivateAccess = "true"))
+	UAnimMontage* SwordComboMontage01;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta = (AllowPrivateAccess = "true"))
+	UAnimMontage* ShootingMontage;
+
 
 
 
@@ -227,6 +246,11 @@ private:
 	float meleeWalkSpeed=430;
 	bool canMove;
 	bool attacking;
+
+	bool bMeleeAttackExcute;
+	bool bRangeAttackExcute;
+
+
 	FVector aimBoomOffset;
 	FVector defaultBoomOffset;
 
@@ -239,6 +263,11 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Weapon", meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<AActor> WeaponSwordClass; // 무기 Blueprint 클래스
+
+	//---------------------------SpawnActor(Projectile 관련 변수)
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Projectile", meta = (AllowPrivateAccess = "true"))
+	TSubclassOf<AProjectileBase> ProjectileBullet; // 무기 Blueprint 클래스
 
 
 	//Murdog 캐릭터에 이미 Gun이 딸려있어서 총 클래스는 배제하도록 함
@@ -253,7 +282,7 @@ private:
 	uint8 teamNumber;
 
 	
-	bool isWithinResumeComboWi;
+	bool isWithinResumeComboWindow;
 	float swordDashFloat;
 
 	bool readyToDodge;
@@ -261,6 +290,7 @@ private:
 	bool bIsInvincible; 
 	bool bhasBlocked;
 	bool IsWithinParryCombo;
+	bool bCanResumeCombo;
 
 	FTimerHandle DelayTimerHandle;
 
@@ -294,6 +324,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* Slot3Action;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* AttackAction;
+
 	
 
 	// Movement Handlers
@@ -312,6 +345,30 @@ protected:
 	void Slot2(const FInputActionValue& Value);
 
 	void Slot3(const FInputActionValue& Value);
+
+	void AcceptAttack(const FInputActionValue& Value);
+
+
+	//--------------------------MontageFunction
+	UFUNCTION()
+	void OnNotifyBeginReceived_SwordCombo1(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointPayload);
+
+	UFUNCTION()
+	void OnNotifyEndReceived_SwordCombo1(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointPayload);
+
+	UFUNCTION()
+	void OnMontageCompleted_SwordCombo(UAnimMontage* Montage, bool bInterrupted);
+
+	void OnInterrupted_SwordCombo();
+
+
+	UFUNCTION()
+	void OnNotifyBeginReceived_RangeShooting(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointPayload);
+
+	UFUNCTION()
+	void OnMontageCompleted_RangeShooting(UAnimMontage* Montage, bool bInterrupted);
+
+	void OnInterrupted_RangeShooting();
 	
 
 
