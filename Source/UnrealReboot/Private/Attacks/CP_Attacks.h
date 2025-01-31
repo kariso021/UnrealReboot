@@ -9,9 +9,8 @@
 #include <Perception/AIPerceptionSystem.h>
 #include <Perception/AISense_Damage.h>
 #include <Perception/AISense.h>
-#include "DamageSystem/DamageInfoMapping.h" //Projectile과 DamageInfo를 연결시켜줒기 위한 라이브러리 모음
-#include "DamageSystem/AOEDamageInfoMapping.h"
 #include "../Projectile/ProjectileBase.h"
+#include "../AOE/AOEBase.h"
 
 #include "CP_Attacks.generated.h"
 
@@ -54,7 +53,7 @@ public:
 	void FireBullet(FVector TraceStart,FVector TraceEnd,FDamageInfo &DamageInfo);
 
 	UFUNCTION()
-	void MagicSpell(FTransform& SpawnTransform, AActor* Target, FDamageInfo& DamageInfo, TSubclassOf<AProjectileBase> ClassofSpawn);
+	void MagicSpell(FTransform& SpawnTransform, AActor* Target, FDamageInfo& DamageInfo);
 
 	UFUNCTION()
 	void AOEDamage(float Radius, FDamageInfo& DamageInfo);
@@ -111,7 +110,10 @@ public:
 
 
 	UFUNCTION()
-	void OnMontageCompleted(UAnimMontage* Montage, bool bInterrupted);
+	void OnMontageCompleted_UseInterrupted(UAnimMontage* Montage, bool bInterrupted);
+
+	UFUNCTION()
+	void OnMontageCompleted_NotUseInterrupted(UAnimMontage* Montage, bool bInterrupted);
 
 	UFUNCTION()
 	void OnMontageBlendedOut(UAnimMontage* Montage, bool bInterrupted);
@@ -137,7 +139,7 @@ public:
 
 
 	UFUNCTION()
-	void OnInterrupted();
+	void OnInterrupted(bool Interrupted);
 
 	UFUNCTION()
 	void OnMontageInterrupted(UAnimMontage* Montage, bool bInterrupted);
@@ -148,6 +150,8 @@ protected:
 	FAttackInfo CurrentAttackInfo;
 	FDamageInfo CurrentDamageInfo;
 
+	FDamageInfo AOECachedDamageInfo;
+
 
 	float CurrentRadius;
 	float CurrentLength;
@@ -157,14 +161,21 @@ protected:
 
 
 private:
-	TArray<AActor*> ActorsDamagedSoFar;
+	
 
 	AActor* CurrentAttackTarget;
 
 	ACharacter* CharacterRef;// 캐릭터 레퍼런스 받아오기 위해 선언
 
-	TMap<AProjectileBase*, FDamageInfo> ProjectileDamageMap;
-	TOptional<FAOEDamageInfoMapping> AOEDamageInfoMapping;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Projectile", meta = (AllowPrivateAccess = "true"))
+	TSubclassOf<AProjectileBase> ProjectileSpawnClass; //Projectilebullet 클래스
+
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Projectile", meta = (AllowPrivateAccess = "true"))
+	TSubclassOf<AAOEBase> AOEClass; //AOE 클래스
+
+
 
 	UPROPERTY()
 	TArray<AProjectileBase*> ActiveProjectiles;

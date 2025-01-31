@@ -39,7 +39,6 @@ EBTNodeResult::Type UBTT_EquipWeaponCPP::ExecuteTask(UBehaviorTreeComponent& Own
     // Weapon Equipped 이벤트 바인딩 (먼저 수행)
     if (!EnemyBase->OnWeaponEquipped.IsAlreadyBound(this, &UBTT_EquipWeaponCPP::OnWeaponEquipped))
     {
-        UE_LOG(LogTemp, Log, TEXT("Binding OnWeaponEquipped event."));
         EnemyBase->OnWeaponEquipped.AddDynamic(this, &UBTT_EquipWeaponCPP::OnWeaponEquipped);
     }
     else
@@ -50,7 +49,6 @@ EBTNodeResult::Type UBTT_EquipWeaponCPP::ExecuteTask(UBehaviorTreeComponent& Own
     // 인터페이스 구현 확인 및 EquipWeapon 호출
     if (EnemyBase->GetClass()->ImplementsInterface(UEnemyAIInterface::StaticClass()))
     {
-        UE_LOG(LogTemp, Log, TEXT("Calling EquipWeapon on EnemyBase: %s"), *EnemyBase->GetName());
         IEnemyAIInterface::Execute_EquipWeapon(EnemyBase);
     }
     else
@@ -66,7 +64,6 @@ void UBTT_EquipWeaponCPP::OnWeaponEquipped()
 {
     if (CachedOwnerComp)
     {
-        UE_LOG(LogTemp, Log, TEXT("OnWeaponEquipped event triggered."));
 
         // 이벤트 바인딩 해제
         if (EnemyBase)
@@ -74,8 +71,6 @@ void UBTT_EquipWeaponCPP::OnWeaponEquipped()
             EnemyBase->OnWeaponEquipped.RemoveDynamic(this, &UBTT_EquipWeaponCPP::OnWeaponEquipped);
         }
 
-        // FinishLatentTask 호출
-        UE_LOG(LogTemp, Log, TEXT("Finishing latent task with Succeeded."));
         FinishLatentTask(*CachedOwnerComp, EBTNodeResult::Succeeded);
     }
     else

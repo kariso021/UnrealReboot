@@ -88,7 +88,10 @@ public:
 
 private:
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health", meta = (AllowPrivateAccess = "true"))
 	float HealthCPP;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health", meta = (AllowPrivateAccess = "true"))
 	float MaxHealthCPP;
 	bool IsInvincibleCPP;
 	bool IsDeadCPP;

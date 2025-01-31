@@ -22,7 +22,13 @@
 #include "DamageSystem/DamageSystem.h"//DamageSystem
 #include "Weapon/WeaponBase.h"
 #include "../Projectile/ProjectileBase.h"
+#include <Components/TimelineComponent.h>
+
 #include "MainPlayer.generated.h"
+
+//전방선언
+class UPlayer_HUD_CPP;
+
 
 UCLASS()
 class AMainPlayer : public ACharacter,public IDamageableInterface
@@ -97,13 +103,13 @@ public:
 
 
 	UPROPERTY(EditDefaultsOnly, Category = "Effects")
-	UParticleSystem* DodgeEffect1;//teleport start
+	UParticleSystem* DodgeEffect_Start;//teleport start
 
 	UPROPERTY(EditDefaultsOnly, Category = "Effects")
-	UParticleSystem* DodgeEffect2;//teleport tail
+	UParticleSystem* DodgeEffect_Tail;//teleport tail
 
 	UPROPERTY(EditDefaultsOnly, Category = "Effects")
-	UParticleSystem* DodgeEffect3;//teleport end
+	UParticleSystem* DodgeEffect_End;//teleport end
 
 	UPROPERTY(EditDefaultsOnly, Category = "Audio")
 	USoundBase* DodgeSound; // 재생할 소리
@@ -123,7 +129,7 @@ public:
 	void WhenActionAfterDodgeEnd();
 
 	UFUNCTION()
-	void WhenBeforeReset();
+	void WhenBeforeResetDodge();
 
 
 
@@ -132,6 +138,11 @@ public:
 	UFUNCTION()
 	void OnDeath();
 
+
+	//---------------------------------------------------------Display HUD
+
+	UFUNCTION()
+	void DisplayHUD();
 
 
 
@@ -241,6 +252,11 @@ private:
 	EPlayerStance Stance;
 
 
+	// 기본 및 조준 시 카메라 오프셋
+	FVector DefaultBoomOffset;
+	FVector AimBoomOffset;
+
+
 	float magicWalkSpeed=200;
 	float defaultWalkSpeed=750;
 	float meleeWalkSpeed=430;
@@ -266,9 +282,6 @@ private:
 
 	//---------------------------SpawnActor(Projectile 관련 변수)
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Projectile", meta = (AllowPrivateAccess = "true"))
-	TSubclassOf<AProjectileBase> ProjectileBullet; // 무기 Blueprint 클래스
-
 
 	//Murdog 캐릭터에 이미 Gun이 딸려있어서 총 클래스는 배제하도록 함
 	//UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Weapon", meta = (AllowPrivateAccess = "true"))
@@ -293,6 +306,17 @@ private:
 	bool bCanResumeCombo;
 
 	FTimerHandle DelayTimerHandle;
+
+	//----------------------------------------------------Widget 관련
+
+
+	  /** HUD 위젯 클래스 */
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	TSubclassOf<UUserWidget> HUDWidgetClass;
+
+	/** 생성된 HUD 인스턴스 */
+	UPROPERTY()
+	UPlayer_HUD_CPP* HUDWidget;
 
 
 	//----------------------------------------Input는 여기에다가
@@ -338,7 +362,9 @@ protected:
 	/** Called for looking input */
 	void Look(const FInputActionValue& Value);
 
-	void Dodge(const FInputActionValue& Value);
+	void DodgeTriggered(const FInputActionValue& Value);
+
+	void DodgeCompleted(const FInputActionValue& Value);
 
 	void Slot1(const FInputActionValue& Value);
 
@@ -369,6 +395,21 @@ protected:
 	void OnMontageCompleted_RangeShooting(UAnimMontage* Montage, bool bInterrupted);
 
 	void OnInterrupted_RangeShooting();
+
+
+	// 타임라인 (TimelineComponent)
+	UPROPERTY()
+	UTimelineComponent* AimTimeline;
+
+	void StartAiming();
+	void StopAiming();
+
+	UPROPERTY(EditAnywhere, Category = "Camera")
+	UCurveFloat* AimCurve;
+
+	// Timeline 업데이트 함수
+	UFUNCTION()
+	void UpdateCameraOffset(float Alpha);
 	
 
 

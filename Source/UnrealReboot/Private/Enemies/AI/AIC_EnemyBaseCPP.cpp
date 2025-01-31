@@ -83,7 +83,7 @@ void AAIC_EnemyBaseCPP::OnPossess(APawn* InPawn)
 
 
 		// InPawn이 EnemyAIInterface를 구현했는지 확인
-		if (InPawn && InPawn->GetClass()->ImplementsInterface(UEnemyAIInterface::StaticClass()))
+		if (InPawn && InPawn->GetClass()->ImplementsInterface(UEnemyAIInterface::StaticClass())) //InPawn->Implements<UEnemyAIInterface()> 가 더 권장되는 방식
 		{
 			// 인터페이스의 Execute_ 함수를 호출하여 데이터를 가져옴
 		/*	FRangeofState IdealRange = IEnemyAIInterface::Execute_GetIdealRange(InPawn);*/

@@ -1,8 +1,8 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "Attacks/CP_Attacks.h"
-#include "DrawDebugHelpers.h"//¶óÀÎÆ®·¹ÀÌ½º µğ¹ö±ë¿ë ÀÎÅ¬·çµå ÇÔ¼ö
+#include "DrawDebugHelpers.h"//ë¼ì¸íŠ¸ë ˆì´ìŠ¤ ë””ë²„ê¹…ìš© ì¸í´ë£¨ë“œ í•¨ìˆ˜
 #include "GameFramework/ProjectileMovementComponent.h"
 #include <Kismet/KismetSystemLibrary.h>
 #include "GameFramework/Character.h"
@@ -13,7 +13,7 @@
 #include "Components/CapsuleComponent.h"
 #include "Perception/AISenseConfig_Damage.h"
 #include "Components/CapsuleComponent.h"
-#include <AOE/AOEBase.h>
+#include "DrawDebugHelpers.h"
 #include <Kismet/GameplayStatics.h>
 
 // Sets default values for this component's properties
@@ -49,21 +49,23 @@ void UCP_Attacks::TickComponent(float DeltaTime, ELevelTick TickType, FActorComp
 
 TArray<AActor*> UCP_Attacks::DamageAllNonTeamMembers(const TArray<FHitResult>& Hits, FDamageInfo& DamageInfo)
 {
-    // Hits ¹è¿­¿¡ ´ã±ä °¢ È÷Æ® °á°ú¿¡ ´ëÇØ ¹İº¹
+    TArray<AActor*> ActorsDamagedSoFar;
+    
+    // Hits ë°°ì—´ì— ë‹´ê¸´ ê° íˆíŠ¸ ê²°ê³¼ì— ëŒ€í•´ ë°˜ë³µ
     for (const FHitResult& Hit : Hits)
     {
         AActor* HitActor = Hit.GetActor();
         if (HitActor && !ActorsDamagedSoFar.Contains(HitActor))
         {
-            // HitActor°¡ DamageableInterface¸¦ ±¸ÇöÇß´ÂÁö È®ÀÎ
+            // HitActorê°€ DamageableInterfaceë¥¼ êµ¬í˜„í–ˆëŠ”ì§€ í™•ì¸
             if (HitActor->GetClass()->ImplementsInterface(UDamageableInterface::StaticClass()) &&
                 GetOwner()->GetClass()->ImplementsInterface(UDamageableInterface::StaticClass()))
             {
-                // ÀÎÅÍÆäÀÌ½º ÇÔ¼ö È£Ãâ
+                // ì¸í„°í˜ì´ìŠ¤ í•¨ìˆ˜ í˜¸ì¶œ
                 int32 ActorTeamNumber = IDamageableInterface::Execute_GetTeamNumber(HitActor);
                 int32 OwnerTeamNumber = IDamageableInterface::Execute_GetTeamNumber(GetOwner());
 
-                // ÆÀÀÌ ´Ù¸¦ °æ¿ì Damage Ã³¸®
+                // íŒ€ì´ ë‹¤ë¥¼ ê²½ìš° Damage ì²˜ë¦¬
                 if (ActorTeamNumber != OwnerTeamNumber)
                 {
                     IDamageableInterface::Execute_TakeDamage(HitActor, DamageInfo, GetOwner());
@@ -72,51 +74,50 @@ TArray<AActor*> UCP_Attacks::DamageAllNonTeamMembers(const TArray<FHitResult>& H
             }
         }
     }
-
-    // ¼Õ»óµÈ ¾×ÅÍ ¸ñ·Ï ¹İÈ¯
+    // ì†ìƒëœ ì•¡í„° ëª©ë¡ ë°˜í™˜
     return ActorsDamagedSoFar;
 }
 
 AActor* UCP_Attacks::DamageFirstNonTeamMembers(const TArray<FHitResult>& Hits, FDamageInfo& DamageInfo)
 {
-    AActor* DamagedActor = nullptr; // ¹İÈ¯ÇÒ ÇÇÇØ¸¦ ÀÔÀº ¾×ÅÍ¸¦ ÀúÀåÇÏ±â À§ÇÑ º¯¼ö
+    AActor* DamagedActor = nullptr; // ë°˜í™˜í•  í”¼í•´ë¥¼ ì…ì€ ì•¡í„°ë¥¼ ì €ì¥í•˜ê¸° ìœ„í•œ ë³€ìˆ˜
 
     for (const FHitResult& Hit : Hits)
     {
         AActor* HitActor = Hit.GetActor();
         if (HitActor && GetOwner())
         {
-            // HitActor¿Í Owner°¡ DamageableInterface¸¦ ±¸ÇöÇß´ÂÁö È®ÀÎ
+            // HitActorì™€ Ownerê°€ DamageableInterfaceë¥¼ êµ¬í˜„í–ˆëŠ”ì§€ í™•ì¸
             if (HitActor->GetClass()->ImplementsInterface(UDamageableInterface::StaticClass()) &&
                 GetOwner()->GetClass()->ImplementsInterface(UDamageableInterface::StaticClass()))
             {
-                // ÀÎÅÍÆäÀÌ½º ÇÔ¼ö È£Ãâ
+                // ì¸í„°í˜ì´ìŠ¤ í•¨ìˆ˜ í˜¸ì¶œ
                 int32 ActorTeamNumber = IDamageableInterface::Execute_GetTeamNumber(HitActor);
                 int32 OwnerTeamNumber = IDamageableInterface::Execute_GetTeamNumber(GetOwner());
 
-                // ÆÀ ¹øÈ£°¡ ´Ù¸¦ °æ¿ì ÇÇÇØ Ã³¸®
+                // íŒ€ ë²ˆí˜¸ê°€ ë‹¤ë¥¼ ê²½ìš° í”¼í•´ ì²˜ë¦¬
                 if (ActorTeamNumber != OwnerTeamNumber)
                 {
                     IDamageableInterface::Execute_TakeDamage(HitActor, DamageInfo, GetOwner());
-                    DamagedActor = HitActor; // ÇÇÇØ¸¦ ÀÔÀº ¾×ÅÍ¸¦ ÀúÀå
-                    break; // Ã¹ ¹øÂ° ºñÆÀ ¸â¹ö¿¡°Ô ÇÇÇØ¸¦ ÁÖ¾úÀ¸¹Ç·Î ·çÇÁ¸¦ Á¾·á
+                    DamagedActor = HitActor; // í”¼í•´ë¥¼ ì…ì€ ì•¡í„°ë¥¼ ì €ì¥
+                    break; // ì²« ë²ˆì§¸ ë¹„íŒ€ ë©¤ë²„ì—ê²Œ í”¼í•´ë¥¼ ì£¼ì—ˆìœ¼ë¯€ë¡œ ë£¨í”„ë¥¼ ì¢…ë£Œ
                 }
             }
         }
     }
 
-    return DamagedActor; // ÇÇÇØ¸¦ ÀÔÀº ¾×ÅÍ¸¦ ¹İÈ¯ÇÏ°Å³ª, ¾ø´Ù¸é nullptr ¹İÈ¯
+    return DamagedActor; // í”¼í•´ë¥¼ ì…ì€ ì•¡í„°ë¥¼ ë°˜í™˜í•˜ê±°ë‚˜, ì—†ë‹¤ë©´ nullptr ë°˜í™˜
 }
 
 USkeletalMeshComponent* UCP_Attacks::AttackBase(AActor* AttackTarget)
 {
     if (GetOwner()->GetClass()->ImplementsInterface(UEnemyAIInterface::StaticClass()))
     {
-        // Attack È£Ãâ
+        // Attack í˜¸ì¶œ
         IEnemyAIInterface::Execute_Attack(GetOwner(), AttackTarget);
     }
 
-    // Owner¸¦ ACharacter·Î Ä³½ºÆÃ
+    // Ownerë¥¼ ACharacterë¡œ ìºìŠ¤íŒ…
     ACharacter* CharOwner = Cast<ACharacter>(GetOwner());
     if (CharOwner)
     {
@@ -180,9 +181,9 @@ void UCP_Attacks::FireBullet(FVector TraceStart, FVector TraceEnd, FDamageInfo& 
 
 }
 
-void UCP_Attacks::MagicSpell(FTransform& SpawnTransform, AActor* Target, FDamageInfo& DamageInfo, TSubclassOf<AProjectileBase> ClassToSpawn)
+void UCP_Attacks::MagicSpell(FTransform& SpawnTransform, AActor* Target, FDamageInfo& DamageInfo)
 {
-    if (!ClassToSpawn)
+    if (!ProjectileSpawnClass)
     {
         UE_LOG(LogTemp, Error, TEXT("ClassToSpawn is null!"));
         return;
@@ -197,30 +198,27 @@ void UCP_Attacks::MagicSpell(FTransform& SpawnTransform, AActor* Target, FDamage
 
     CurrentDamageInfo = DamageInfo;
 
-    // FActorSpawnParameters ¼³Á¤
+    // FActorSpawnParameters ì„¤ì •
     FActorSpawnParameters SpawnParams;
     SpawnParams.Name = NAME_None;
     SpawnParams.Owner = GetOwner();
     SpawnParams.Instigator = Cast<APawn>(GetOwner());
     SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-    // µğ¹ö±ë: SpawnTransform È®ÀÎ
-    UE_LOG(LogTemp, Warning, TEXT("SpawnTransform Location: %s"), *SpawnTransform.GetLocation().ToString());
-
-    // ¹ß»çÃ¼ ½ºÆù
-    AProjectileBase* SpawnedProjectile = World->SpawnActor<AProjectileBase>(ClassToSpawn, SpawnTransform, SpawnParams);
+    // ë°œì‚¬ì²´ ìŠ¤í°
+    AProjectileBase* SpawnedProjectile = World->SpawnActor<AProjectileBase>(ProjectileSpawnClass, SpawnTransform, SpawnParams);
 
     if (SpawnedProjectile)
     {
-        // ¹ß»çÃ¼ ÃÊ±âÈ­
+        // ë°œì‚¬ì²´ ì´ˆê¸°í™”
         SpawnedProjectile->InitializeProjectile(1000.0f, 0.0f, false, Target);
 
-        // ¹ß»çÃ¼°¡ ÀÚ½ÅÀÇ ¼ÒÀ¯ÀÚ¸¦ ¹«½ÃÇÏµµ·Ï ¼³Á¤
+        // ë°œì‚¬ì²´ê°€ ìì‹ ì˜ ì†Œìœ ìë¥¼ ë¬´ì‹œí•˜ë„ë¡ ì„¤ì •
         AActor* OwnerActor = GetOwner();
         ACharacter* OwnerCharacter = Cast<ACharacter>(OwnerActor);
         if (OwnerActor)
         {
-            // ¹ß»çÃ¼ÀÇ Ãæµ¹ ÄÄÆ÷³ÍÆ®¿¡¼­ IgnoreActorWhenMoving È£Ãâ
+            // ë°œì‚¬ì²´ì˜ ì¶©ëŒ ì»´í¬ë„ŒíŠ¸ì—ì„œ IgnoreActorWhenMoving í˜¸ì¶œ
             UCapsuleComponent* ProjectileCollisionComponent = OwnerCharacter->GetCapsuleComponent();
             if (ProjectileCollisionComponent)
             {
@@ -234,65 +232,58 @@ void UCP_Attacks::MagicSpell(FTransform& SpawnTransform, AActor* Target, FDamage
             }
         }
 
-        // Ãæµ¹ ÀÌº¥Æ® ¹ÙÀÎµù
+        //ì¶©ëŒ ì´ë²¤íŠ¸ and ê¸°ì¡´ ë°”ì¸ë”© ì œê±°
+        SpawnedProjectile->OnProjectileImpact.RemoveDynamic(this, &UCP_Attacks::OnProjectileHit);
         SpawnedProjectile->OnProjectileImpact.AddDynamic(this, &UCP_Attacks::OnProjectileHit);
-
-        UE_LOG(LogTemp, Warning, TEXT("Projectile spawned: %s"), *SpawnedProjectile->GetName());
 
     }
     else
     {
-        UE_LOG(LogTemp, Error, TEXT("Failed to spawn projectile! ClassToSpawn: %s"), *ClassToSpawn->GetName());
+        UE_LOG(LogTemp, Error, TEXT("Failed to spawn projectile! ClassToSpawn: %s"), *ProjectileSpawnClass->GetName());
     }
 }
 
 void UCP_Attacks::AOEDamage(float Radius, FDamageInfo& DamageInfo)
 {
-    //DamageInfoMapping ÀÌ Ãæµ¹³­´Ù´Â °ÍÀ» ¾Í-> ±×·¯³ª °°ÀÌ ¾²ÀÏÀÏÀÌ ¾ø±â¶§¹®¿¡ ±×´ë·Î InfoMapping ±×´ë·Î ¾¸
-    
     UWorld* World = GetWorld();
-    if (World)
+    if (!World || !AOEClass) return;
+
+    // ê¸°ì¡´ DamageInfoë¥¼ ìºì‹±í•˜ì—¬ ì €ì¥
+    AOECachedDamageInfo = DamageInfo;
+
+    FVector SpawnLocation = GetOwner()->GetActorLocation();
+    FRotator SpawnRotation = FRotator::ZeroRotator;
+
+    AAOEBase* AOEInstance = World->SpawnActor<AAOEBase>(AOEClass, SpawnLocation, SpawnRotation);
+    if (AOEInstance)
     {
-        
-        FVector SpawnLocation = GetOwner()->GetActorLocation();
+        AOEInstance->SetRadius(Radius);
+        AOEInstance->SetInstigator(Cast<APawn>(GetOwner()));
+        AOEInstance->SetOptionOfAOE(false, true, false);
 
-        FActorSpawnParameters SpawnParams;
-        SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+        // ê¸°ì¡´ DamageInfo ì „ë‹¬ í•„ìš” ì—†ìŒ â†’ AOEDamageActorì—ì„œ ì§ì ‘ CachedDamageInfo ì‚¬ìš©
+        AOEInstance->OnAOEOverlapActor.RemoveDynamic(this, &UCP_Attacks::AOEDamageActor);
+        AOEInstance->OnAOEOverlapActor.AddDynamic(this, &UCP_Attacks::AOEDamageActor);
 
-        AAOEBase* SpawnedAOEActor = World->SpawnActor<AAOEBase>(AAOEBase::StaticClass(), SpawnLocation, FRotator::ZeroRotator, SpawnParams);
-
-        if (SpawnedAOEActor)
-        {
-            SpawnedAOEActor->SetRadius(Radius);
-            AOEDamageInfoMapping = FAOEDamageInfoMapping(SpawnedAOEActor, DamageInfo);
-
-            SpawnedAOEActor->OnAOEOverlapActor.AddDynamic(this, &UCP_Attacks::AOEDamageActor);
-        
-        }
-            
+        AOEInstance->Trigger();
     }
 }
 
-void UCP_Attacks::AOEDamageActor(AActor* Actor)
+void UCP_Attacks::AOEDamageActor(AActor* HitActor)
 {
-    if (AOEDamageInfoMapping.IsSet() && AOEDamageInfoMapping.GetValue().AOEDamageActor == Actor)
+    if (!HitActor) return;
+
+    // í”¼í•´ë¥¼ ë°›ëŠ” ì•¡í„°ê°€ IDamageableInterfaceë¥¼ êµ¬í˜„í–ˆëŠ”ì§€ í™•ì¸
+    if (HitActor->GetClass()->ImplementsInterface(UDamageableInterface::StaticClass()) &&
+        GetOwner()->GetClass()->ImplementsInterface(UDamageableInterface::StaticClass()))
     {
-        FAOEDamageInfoMapping& Mapping = AOEDamageInfoMapping.GetValue();
+        int32 HitActorTeamNumber = IDamageableInterface::Execute_GetTeamNumber(HitActor);
+        int32 OwnerTeamNumber = IDamageableInterface::Execute_GetTeamNumber(GetOwner());
 
-        // Actor¿Í Owner°¡ IDamageableInterface¸¦ ±¸ÇöÇß´ÂÁö È®ÀÎ
-        if (Actor->GetClass()->ImplementsInterface(UDamageableInterface::StaticClass()) &&
-            GetOwner()->GetClass()->ImplementsInterface(UDamageableInterface::StaticClass()))
+        // íŒ€ ë²ˆí˜¸ê°€ ë‹¤ë¥¼ ë•Œë§Œ í”¼í•´ ì²˜ë¦¬
+        if (HitActorTeamNumber != OwnerTeamNumber)
         {
-            // ÀÎÅÍÆäÀÌ½º ÇÔ¼ö È£Ãâ
-            int32 ActorTeamNumber = IDamageableInterface::Execute_GetTeamNumber(Actor);
-            int32 OwnerTeamNumber = IDamageableInterface::Execute_GetTeamNumber(GetOwner());
-
-            // ÆÀ ¹øÈ£°¡ ´Ù¸¥ °æ¿ì ÇÇÇØ Ã³¸®
-            if (ActorTeamNumber != OwnerTeamNumber)
-            {
-                IDamageableInterface::Execute_TakeDamage(Actor, Mapping.DamageInfo, GetOwner());
-                AOEDamageInfoMapping.Reset();
-            }
+            IDamageableInterface::Execute_TakeDamage(HitActor, AOECachedDamageInfo, GetOwner());
         }
     }
 }
@@ -305,14 +296,17 @@ void UCP_Attacks::SphereTraceDamage(float Radius, float Length, FDamageInfo& Dam
 
 
     FVector StartLocation = GetOwner()->GetActorLocation();
+    //UE_LOG(LogTemp, Warning, TEXT("StartLocation Spawn Location: %s"), *StartLocation.ToString());
     FVector ForwardVector = GetOwner()->GetActorForwardVector();
     FVector EndLocation = StartLocation + (ForwardVector * Length);
 
-    // ÆÄ¶ó¸ÅÅÍµé
+
+
+    // íŒŒë¼ë§¤í„°ë“¤
     FCollisionQueryParams TraceParams(FName(TEXT("SphereTraceDamage")), false, GetOwner());
     TraceParams.bReturnPhysicalMaterial = true;
 
-    //Sphere Trace ÇÑ°Å
+    //Sphere Trace í•œê±°
     TArray<FHitResult> HitResults;
     bool bHit = World->SweepMultiByChannel(
         HitResults,
@@ -324,7 +318,28 @@ void UCP_Attacks::SphereTraceDamage(float Radius, float Length, FDamageInfo& Dam
         TraceParams
     );
 
-    // °°ÀºÆÀ °ø°İ ÆÇº°
+    //---------------------------------------------------ë””ë²„ê¹… SphereTrace
+
+    ////  ë””ë²„ê·¸ìš© ë¼ì¸ ê·¸ë¦¬ê¸° (íŠ¸ë ˆì´ìŠ¤ ê²½ë¡œ í™•ì¸)
+    //DrawDebugLine(World, StartLocation, EndLocation, FColor::Red, false, 2.0f, 0, 2.0f);
+
+    ////  ë””ë²„ê·¸ìš© ì‹œì‘ & ëì  ìŠ¤í”¼ì–´ ê·¸ë¦¬ê¸°
+    //DrawDebugSphere(World, StartLocation, Radius, 50, FColor::Blue, false, 2.0f);
+    //DrawDebugSphere(World, EndLocation, Radius, 12, FColor::Green, false, 2.0f);
+
+    ////  íˆíŠ¸ëœ ìœ„ì¹˜ë§ˆë‹¤ ìŠ¤í”¼ì–´ ê·¸ë¦¬ê¸°
+    //if (bHit)
+    //{
+    //    for (const FHitResult& Hit : HitResults)
+    //    {
+    //        DrawDebugSphere(World, Hit.ImpactPoint, Radius * 2.0f, 12, FColor::Yellow, false, 10.0f);
+    //        UE_LOG(LogTemp, Warning, TEXT("SphereTrace Hit: %s"), *Hit.GetActor()->GetName());
+    //    }
+    //}
+
+    //--------------------------------------------------------------------------------------------------------------
+
+    // ê°™ì€íŒ€ ê³µê²© íŒë³„
     if (bHit)
     {
         DamageAllNonTeamMembers(HitResults, DamageInfo);
@@ -333,36 +348,36 @@ void UCP_Attacks::SphereTraceDamage(float Radius, float Length, FDamageInfo& Dam
 
 void UCP_Attacks::JumpToAttackTarget(AActor* AttackTarget)
 {
-    if (!AttackTarget || !GetOwner()) return; // À¯È¿¼º °Ë»ç
+    if (!AttackTarget || !GetOwner()) return; // ìœ íš¨ì„± ê²€ì‚¬
 
-    // 1. ÇöÀç À§Ä¡¿Í Å¸°Ù À§Ä¡ °¡Á®¿À±â
+    // 1. í˜„ì¬ ìœ„ì¹˜ì™€ íƒ€ê²Ÿ ìœ„ì¹˜ ê°€ì ¸ì˜¤ê¸°
     FVector StartPosition = GetOwner()->GetActorLocation();
     FVector AttackTargetPosition = AttackTarget->GetActorLocation();
 
-    // 2. Å¸°ÙÀÇ ¹Ì·¡ À§Ä¡ °è»ê
-    float PredictionTime = 1.0f; // ¿¹Ãø ½Ã°£
+    // 2. íƒ€ê²Ÿì˜ ë¯¸ë˜ ìœ„ì¹˜ ê³„ì‚°
+    float PredictionTime = 1.0f; // ì˜ˆì¸¡ ì‹œê°„
     FVector PredictedTargetLocation = CalculateFutureActorLocation(AttackTarget, PredictionTime);
 
-    // Z ÃàÀ» 100¸¸Å­ ¿Ã¸²
+    // Z ì¶•ì„ 100ë§Œí¼ ì˜¬ë¦¼
     PredictedTargetLocation.Z += 100.0f;
 
-    // 3. °Å¸® °è»ê
+    // 3. ê±°ë¦¬ ê³„ì‚°
     float Distance = FVector::Dist(StartPosition, AttackTargetPosition);
 
-    // 4. °Å¸® ¹üÀ§¸¦ Normalize (400 ~ 800 »çÀÌ·Î Á¦ÇÑ)
+    // 4. ê±°ë¦¬ ë²”ìœ„ë¥¼ Normalize (400 ~ 800 ì‚¬ì´ë¡œ ì œí•œ)
     float NormalizedRange = FMath::Clamp((Distance - 400.0f) / 400.0f, 0.0f, 1.0f);
 
-    // 5. ¼Óµµ °è»ê (Lerp »ç¿ë)
+    // 5. ì†ë„ ê³„ì‚° (Lerp ì‚¬ìš©)
     float Alpha = FMath::Lerp(0.5f, 0.94f, NormalizedRange);
     FVector LaunchVelocity;
 
-    // 6. Æ÷¹°¼± ¼Óµµ °è»ê
+    // 6. í¬ë¬¼ì„  ì†ë„ ê³„ì‚°
     bool bHasValidVelocity = UGameplayStatics::SuggestProjectileVelocity_CustomArc(
         this,
         LaunchVelocity,
         StartPosition,
         PredictedTargetLocation,
-        0.0f // Áß·Â ¿À¹ö¶óÀÌµå °ª (±âº» Áß·Â »ç¿ë)
+        0.0f // ì¤‘ë ¥ ì˜¤ë²„ë¼ì´ë“œ ê°’ (ê¸°ë³¸ ì¤‘ë ¥ ì‚¬ìš©)
     );
 
     if (!bHasValidVelocity)
@@ -371,13 +386,13 @@ void UCP_Attacks::JumpToAttackTarget(AActor* AttackTarget)
         return;
     }
 
-    // 7. Á¡ÇÁ ·ÎÁ÷
+    // 7. ì í”„ ë¡œì§
     ACharacter* OwnerCharacter = Cast<ACharacter>(GetOwner());
     if (OwnerCharacter)
     {
         OwnerCharacter->LaunchCharacter(LaunchVelocity, true, true);
 
-        // ÂøÁö ÀÌº¥Æ® ¹ÙÀÎµù
+        // ì°©ì§€ ì´ë²¤íŠ¸ ë°”ì¸ë”©
         OwnerCharacter->LandedDelegate.AddDynamic(this, &UCP_Attacks::OnLand);
     }
     else
@@ -391,7 +406,7 @@ void UCP_Attacks::OnLand(const FHitResult& Hit)
     ACharacter* OwnerCharacter = Cast<ACharacter>(GetOwner());
     if (OwnerCharacter)
     {
-        // ¾ğ¹ÙÀÎµå
+        // ì–¸ë°”ì¸ë“œ
         OwnerCharacter->LandedDelegate.RemoveDynamic(this, &UCP_Attacks::OnLand);
 
         // Stop the character's movement
@@ -404,7 +419,7 @@ void UCP_Attacks::GroundSmash(FAttackInfo& AttackInfo, float Radius)
     CurrentAttackInfo = AttackInfo;
     CurrentRadius = Radius;
 
-    USkeletalMeshComponent* MeshComp = AttackBase(AttackInfo.AttackTarget);// ¸Å½¬ÄÄÆ÷³ÍÆ® ¹Ş¾Æ¿À±â
+    USkeletalMeshComponent* MeshComp = AttackBase(AttackInfo.AttackTarget);// ë§¤ì‰¬ì»´í¬ë„ŒíŠ¸ ë°›ì•„ì˜¤ê¸°
     UAnimMontage* MontageToPlay = AttackInfo.Montage;
 
     if (MeshComp && MontageToPlay)
@@ -416,7 +431,7 @@ void UCP_Attacks::GroundSmash(FAttackInfo& AttackInfo, float Radius)
             float MontageStartPosition = 0.0f;
             FName MontageStartingSection= NAME_None; 
 
-            // ÇÃ·¹ÀÌ ¼º°øÀûÀÏ½Ã
+            // í”Œë ˆì´ ì„±ê³µì ì¼ì‹œ
             float MontageLength = AnimInstance->Montage_Play(MontageToPlay, MontagePlayRate, EMontagePlayReturnType::MontageLength, MontageStartPosition);
             bool bPlayedSuccessfully = MontageLength > 0.f;
 
@@ -433,23 +448,20 @@ void UCP_Attacks::GroundSmash(FAttackInfo& AttackInfo, float Radius)
                     AnimInstance->Montage_JumpToSection(MontageStartingSection, MontageToPlay);
                 }
 
-                // EndDelegtate ¿©±â¼­ ¹ÙÀÎµå
+                // EndDelegtate ì—¬ê¸°ì„œ ë°”ì¸ë“œ
                 FOnMontageEnded OnMontageEndedDelegate;
-                OnMontageEndedDelegate.BindUObject(this, &UCP_Attacks::OnMontageCompleted);
+                OnMontageEndedDelegate.BindUObject(this, &UCP_Attacks::OnMontageCompleted_UseInterrupted);
 
 
 
                 AnimInstance->Montage_SetEndDelegate(OnMontageEndedDelegate, MontageToPlay);
 
                 // Bind to Notify Begin and End for additional actions
+                AnimInstance->OnPlayMontageNotifyBegin.RemoveDynamic(this, &UCP_Attacks::OnNotifyBeginReceived_GroundSmash);
                 AnimInstance->OnPlayMontageNotifyBegin.AddDynamic(this, &UCP_Attacks::OnNotifyBeginReceived_GroundSmash);
    
             }
-            else
-            {
-                // Handle montage interrupted or failed to play
-                OnInterrupted();
-            }
+            OnInterrupted(false);
         }
     }
 }
@@ -458,8 +470,9 @@ void UCP_Attacks::PrimaryMeleeAttack(FAttackInfo& AttackInfo, float Radius, floa
 {
     CurrentAttackInfo = AttackInfo;
     CurrentRadius = Radius;
+    CurrentLength = Length;
 
-    USkeletalMeshComponent* MeshComp = AttackBase(AttackInfo.AttackTarget); // ¸Å½¬ ÄÄÆ÷³ÍÆ® ¹Ş¾Æ¿À±â
+    USkeletalMeshComponent* MeshComp = AttackBase(AttackInfo.AttackTarget); // ë§¤ì‰¬ ì»´í¬ë„ŒíŠ¸ ë°›ì•„ì˜¤ê¸°
     UAnimMontage* MontageToPlay = AttackInfo.Montage;
 
     if (MeshComp && MontageToPlay)
@@ -471,38 +484,39 @@ void UCP_Attacks::PrimaryMeleeAttack(FAttackInfo& AttackInfo, float Radius, floa
             float MontageStartPosition = 0.0f;
             FName MontageStartingSection = NAME_None;
 
-            // ¾Ö´Ï¸ŞÀÌ¼Ç Àç»ı
+            // ì• ë‹ˆë©”ì´ì…˜ ì¬ìƒ
             float MontageLength = AnimInstance->Montage_Play(MontageToPlay, MontagePlayRate, EMontagePlayReturnType::MontageLength, MontageStartPosition);
             bool bPlayedSuccessfully = MontageLength > 0.f;
 
-            // Owner°¡ DamageableInterface¸¦ ±¸ÇöÇß´ÂÁö È®ÀÎ
+            // Ownerê°€ DamageableInterfaceë¥¼ êµ¬í˜„í–ˆëŠ”ì§€ í™•ì¸
             if (GetOwner() && GetOwner()->GetClass()->ImplementsInterface(UDamageableInterface::StaticClass()))
             {
-                // ÀÎÅÍÆäÀÌ½º ÇÔ¼ö È£Ãâ
+                // ì¸í„°í˜ì´ìŠ¤ í•¨ìˆ˜ í˜¸ì¶œ
                 IDamageableInterface::Execute_SetIsInterruptible(GetOwner(), false);
             }
 
             if (bPlayedSuccessfully)
             {
-                // Æ¯Á¤ ¼½¼ÇÀ¸·Î ÀÌµ¿
+                // íŠ¹ì • ì„¹ì…˜ìœ¼ë¡œ ì´ë™
                 if (MontageStartingSection != NAME_None)
                 {
                     AnimInstance->Montage_JumpToSection(MontageStartingSection, MontageToPlay);
                 }
 
-                // EndDelegate ¹ÙÀÎµå
+                // EndDelegate ë°”ì¸ë“œ
                 FOnMontageEnded OnMontageEndedDelegate;
-                OnMontageEndedDelegate.BindUObject(this, &UCP_Attacks::OnMontageCompleted);
+                OnMontageEndedDelegate.BindUObject(this, &UCP_Attacks::OnMontageCompleted_NotUseInterrupted);
 
                 AnimInstance->Montage_SetEndDelegate(OnMontageEndedDelegate, MontageToPlay);
 
-                // Notify Begin ¹ÙÀÎµå
-                AnimInstance->OnPlayMontageNotifyBegin.AddDynamic(this, &UCP_Attacks::OnNotifyBeginReceived_GroundSmash);
+                // Notify Begin ë°”ì¸ë“œ
+                AnimInstance->OnPlayMontageNotifyBegin.RemoveDynamic(this, &UCP_Attacks::OnNotifyBeginReceived_PrimaryMeleeAttack);
+                AnimInstance->OnPlayMontageNotifyBegin.AddDynamic(this, &UCP_Attacks::OnNotifyBeginReceived_PrimaryMeleeAttack);
             }
             else
             {
-                // ¸ùÅ¸ÁÖ Àç»ı ½ÇÆĞ Ã³¸®
-                OnInterrupted();
+                // ëª½íƒ€ì£¼ ì¬ìƒ ì‹¤íŒ¨ ì²˜ë¦¬
+                OnInterrupted(true);
             }
         }
     }
@@ -512,7 +526,7 @@ void UCP_Attacks::LongRangeMeleeAttack(FAttackInfo& AttackInfo)
 {
     CurrentAttackInfo = AttackInfo;
 
-    USkeletalMeshComponent* MeshComp = AttackBase(AttackInfo.AttackTarget); // ¸Å½¬ ÄÄÆ÷³ÍÆ® ¹Ş¾Æ¿À±â
+    USkeletalMeshComponent* MeshComp = AttackBase(AttackInfo.AttackTarget); // ë§¤ì‰¬ ì»´í¬ë„ŒíŠ¸ ë°›ì•„ì˜¤ê¸°
     UAnimMontage* MontageToPlay = AttackInfo.Montage;
 
     if (MeshComp && MontageToPlay)
@@ -522,40 +536,37 @@ void UCP_Attacks::LongRangeMeleeAttack(FAttackInfo& AttackInfo)
         {
             float MontagePlayRate = 1.0f;
             float MontageStartPosition = 0.0f;
-            FName MontageStartingSection = NAME_None; // ÇÊ¿äÇÑ °æ¿ì ¼³Á¤
+            FName MontageStartingSection = NAME_None; // í•„ìš”í•œ ê²½ìš° ì„¤ì •
 
-            // ¸ùÅ¸ÁÖ Àç»ı ¹× ¼º°ø ¿©ºÎ È®ÀÎ
+            // ëª½íƒ€ì£¼ ì¬ìƒ ë° ì„±ê³µ ì—¬ë¶€ í™•ì¸
             float MontageLength = AnimInstance->Montage_Play(MontageToPlay, MontagePlayRate, EMontagePlayReturnType::MontageLength, MontageStartPosition);
             bool bPlayedSuccessfully = MontageLength > 0.f;
 
-            // Owner°¡ IDamageableInterface¸¦ ±¸ÇöÇß´ÂÁö È®ÀÎ
+            // Ownerê°€ IDamageableInterfaceë¥¼ êµ¬í˜„í–ˆëŠ”ì§€ í™•ì¸
             if (GetOwner() && GetOwner()->GetClass()->ImplementsInterface(UDamageableInterface::StaticClass()))
             {
-                // SetIsInterruptible È£Ãâ
+                // SetIsInterruptible í˜¸ì¶œ
                 IDamageableInterface::Execute_SetIsInterruptible(GetOwner(), false);
             }
 
             if (bPlayedSuccessfully)
             {
-                // ÇÊ¿äÇÑ °æ¿ì Æ¯Á¤ ¼½¼ÇÀ¸·Î ÀÌµ¿
+                // í•„ìš”í•œ ê²½ìš° íŠ¹ì • ì„¹ì…˜ìœ¼ë¡œ ì´ë™
                 if (MontageStartingSection != NAME_None)
                 {
                     AnimInstance->Montage_JumpToSection(MontageStartingSection, MontageToPlay);
                 }
 
-                // OnMontageEnded µ¨¸®°ÔÀÌÆ® ¹ÙÀÎµù
+                // OnMontageEnded ë¸ë¦¬ê²Œì´íŠ¸ ë°”ì¸ë”©
                 FOnMontageEnded OnMontageEndedDelegate;
-                OnMontageEndedDelegate.BindUObject(this, &UCP_Attacks::OnMontageCompleted);
+                OnMontageEndedDelegate.BindUObject(this, &UCP_Attacks::OnMontageCompleted_UseInterrupted);
                 AnimInstance->Montage_SetEndDelegate(OnMontageEndedDelegate, MontageToPlay);
 
-                // Notify Begin ÀÌº¥Æ® ¹ÙÀÎµù
+                // Notify Begin ì´ë²¤íŠ¸ ë°”ì¸ë”©
+                AnimInstance->OnPlayMontageNotifyBegin.RemoveDynamic(this, &UCP_Attacks::OnNotifyBeginReceived_LongRangeMeleeAttack);
                 AnimInstance->OnPlayMontageNotifyBegin.AddDynamic(this, &UCP_Attacks::OnNotifyBeginReceived_LongRangeMeleeAttack);
             }
-            else
-            {
-                // ¸ùÅ¸ÁÖ Àç»ı ½ÇÆĞ ¶Ç´Â Áß´Ü Ã³¸®
-                OnInterrupted();
-            }
+            OnInterrupted(false);
         }
     }
 }
@@ -564,7 +575,7 @@ void UCP_Attacks::SpinningMeleeAttack(FAttackInfo& AttackInfo)
 {
     CurrentAttackInfo = AttackInfo;
 
-    USkeletalMeshComponent* MeshComp = AttackBase(AttackInfo.AttackTarget); // ¸Å½¬ ÄÄÆ÷³ÍÆ® ¹Ş¾Æ¿À±â
+    USkeletalMeshComponent* MeshComp = AttackBase(AttackInfo.AttackTarget); // ë§¤ì‰¬ ì»´í¬ë„ŒíŠ¸ ë°›ì•„ì˜¤ê¸°
     UAnimMontage* MontageToPlay = AttackInfo.Montage;
 
     if (MeshComp && MontageToPlay)
@@ -574,45 +585,42 @@ void UCP_Attacks::SpinningMeleeAttack(FAttackInfo& AttackInfo)
         {
             float MontagePlayRate = 1.0f;
             float MontageStartPosition = 0.0f;
-            FName MontageStartingSection = NAME_None; // ÇÊ¿äÇÑ °æ¿ì ¼³Á¤
+            FName MontageStartingSection = NAME_None; // í•„ìš”í•œ ê²½ìš° ì„¤ì •
 
-            // ¸ùÅ¸ÁÖ Àç»ı ¹× ¼º°ø ¿©ºÎ È®ÀÎ
+            // ëª½íƒ€ì£¼ ì¬ìƒ ë° ì„±ê³µ ì—¬ë¶€ í™•ì¸
             float MontageLength = AnimInstance->Montage_Play(MontageToPlay, MontagePlayRate, EMontagePlayReturnType::MontageLength, MontageStartPosition);
             bool bPlayedSuccessfully = MontageLength > 0.f;
 
-            // Owner°¡ IDamageableInterface¸¦ ±¸ÇöÇß´ÂÁö È®ÀÎ
+            // Ownerê°€ IDamageableInterfaceë¥¼ êµ¬í˜„í–ˆëŠ”ì§€ í™•ì¸
             if (GetOwner() && GetOwner()->GetClass()->ImplementsInterface(UDamageableInterface::StaticClass()))
             {
-                // SetIsInterruptible È£Ãâ
+                // SetIsInterruptible í˜¸ì¶œ
                 IDamageableInterface::Execute_SetIsInterruptible(GetOwner(), false);
             }
 
             if (bPlayedSuccessfully)
             {
-                // ÇÊ¿äÇÑ °æ¿ì Æ¯Á¤ ¼½¼ÇÀ¸·Î ÀÌµ¿
-                if (MontageStartingSection != NAME_None)
-                {
-                    AnimInstance->Montage_JumpToSection(MontageStartingSection, MontageToPlay);
-                }
+                //// í•„ìš”í•œ ê²½ìš° íŠ¹ì • ì„¹ì…˜ìœ¼ë¡œ ì´ë™
+                //if (MontageStartingSection != NAME_None)
+                //{
+                //    AnimInstance->Montage_JumpToSection(MontageStartingSection, MontageToPlay);
+                //}
 
-                // OnMontageEnded µ¨¸®°ÔÀÌÆ® ¹ÙÀÎµù
+                // OnMontageEnded ë¸ë¦¬ê²Œì´íŠ¸ ë°”ì¸ë”©
                 FOnMontageEnded OnMontageEndedDelegate;
-                OnMontageEndedDelegate.BindUObject(this, &UCP_Attacks::OnMontageCompleted);
+                OnMontageEndedDelegate.BindUObject(this, &UCP_Attacks::OnMontageCompleted_UseInterrupted);
                 AnimInstance->Montage_SetEndDelegate(OnMontageEndedDelegate, MontageToPlay);
 
-                // Notify Begin ÀÌº¥Æ® ¹ÙÀÎµù
+                // Notify Begin ì´ë²¤íŠ¸ ë°”ì¸ë”©
+                AnimInstance->OnPlayMontageNotifyBegin.RemoveDynamic(this, &UCP_Attacks::OnNotifyBeginReceived_SpinningMeleeAttack);
                 AnimInstance->OnPlayMontageNotifyBegin.AddDynamic(this, &UCP_Attacks::OnNotifyBeginReceived_SpinningMeleeAttack);
 
-                // Notify End ÀÌº¥Æ® ¹ÙÀÎµù
+                // Notify End ì´ë²¤íŠ¸ ë°”ì¸ë”©
                 FOnMontageEnded OnMontageInterruptedDelegate;
                 OnMontageInterruptedDelegate.BindUObject(this, &UCP_Attacks::OnMontageInterrupted);
                 AnimInstance->Montage_SetEndDelegate(OnMontageInterruptedDelegate, MontageToPlay);
             }
-            else
-            {
-                // ¸ùÅ¸ÁÖ Àç»ı ½ÇÆĞ ¶Ç´Â Áß´Ü Ã³¸®
-                OnInterrupted();
-            }
+            OnInterrupted(false);
         }
     }
 }
@@ -621,7 +629,7 @@ void UCP_Attacks::BasicMageSpell(FAttackInfo& AttackInfo)
 {
     CurrentAttackInfo = AttackInfo;
 
-    USkeletalMeshComponent* MeshComp = AttackBase(AttackInfo.AttackTarget);// ¸Å½¬ÄÄÆ÷³ÍÆ® ¹Ş¾Æ¿À±â
+    USkeletalMeshComponent* MeshComp = AttackBase(AttackInfo.AttackTarget);// ë§¤ì‰¬ì»´í¬ë„ŒíŠ¸ ë°›ì•„ì˜¤ê¸°
     UAnimMontage* MontageToPlay = AttackInfo.Montage;
 
     if (MeshComp && MontageToPlay)
@@ -647,17 +655,13 @@ void UCP_Attacks::BasicMageSpell(FAttackInfo& AttackInfo)
 
                 // Bind the OnMontageEnded delegate
                 FOnMontageEnded OnMontageEndedDelegate;
-                OnMontageEndedDelegate.BindUObject(this, &UCP_Attacks::OnMontageCompleted);
+                OnMontageEndedDelegate.BindUObject(this, &UCP_Attacks::OnMontageCompleted_NotUseInterrupted);
                 AnimInstance->Montage_SetEndDelegate(OnMontageEndedDelegate, MontageToPlay);
 
                 // Bind to Notify Begin and End for additional actions
+                AnimInstance->OnPlayMontageNotifyBegin.RemoveDynamic(this, &UCP_Attacks::OnNotifyBeginReceived_BasicMageSpell);
                 AnimInstance->OnPlayMontageNotifyBegin.AddDynamic(this, &UCP_Attacks::OnNotifyBeginReceived_BasicMageSpell);
 
-            }
-            else
-            {
-                // Handle montage interrupted or failed to play
-                OnInterrupted();
             }
         }
     }
@@ -667,7 +671,7 @@ void UCP_Attacks::BarrageMagicSpell(FAttackInfo& AttackInfo)
 {
     CurrentAttackInfo = AttackInfo;
 
-    USkeletalMeshComponent* MeshComp = AttackBase(AttackInfo.AttackTarget);// ¸Å½¬ÄÄÆ÷³ÍÆ® ¹Ş¾Æ¿À±â
+    USkeletalMeshComponent* MeshComp = AttackBase(AttackInfo.AttackTarget);// ë§¤ì‰¬ì»´í¬ë„ŒíŠ¸ ë°›ì•„ì˜¤ê¸°
     UAnimMontage* MontageToPlay = AttackInfo.Montage;
 
     if (MeshComp && MontageToPlay)
@@ -693,17 +697,13 @@ void UCP_Attacks::BarrageMagicSpell(FAttackInfo& AttackInfo)
 
                 // Bind the OnMontageEnded delegate
                 FOnMontageEnded OnMontageEndedDelegate;
-                OnMontageEndedDelegate.BindUObject(this, &UCP_Attacks::OnMontageCompleted);
+                OnMontageEndedDelegate.BindUObject(this, &UCP_Attacks::OnMontageCompleted_UseInterrupted);
                 AnimInstance->Montage_SetEndDelegate(OnMontageEndedDelegate, MontageToPlay);
 
                 // Bind to Notify Begin and End for additional actions
+                AnimInstance->OnPlayMontageNotifyBegin.RemoveDynamic(this, &UCP_Attacks::OnNotifyBeginReceived_BarrageMagicSpell);
                 AnimInstance->OnPlayMontageNotifyBegin.AddDynamic(this, &UCP_Attacks::OnNotifyBeginReceived_BarrageMagicSpell);
 
-            }
-            else
-            {
-                // Handle montage interrupted or failed to play
-                OnInterrupted();
             }
         }
     }
@@ -714,7 +714,7 @@ void UCP_Attacks::OnProjectileHit(AActor* OtherActor, const FHitResult& Hit)
     FDamageInfo DamageInfo=CurrentDamageInfo;
     if (OtherActor && OtherActor->GetClass()->ImplementsInterface(UDamageableInterface::StaticClass()))
     {
-        // TakeDamageÈ£Ãâ
+        // TakeDamageí˜¸ì¶œ
         IDamageableInterface::Execute_TakeDamage(OtherActor,DamageInfo,GetOwner());
     }
     else
@@ -725,12 +725,12 @@ void UCP_Attacks::OnProjectileHit(AActor* OtherActor, const FHitResult& Hit)
 
     UAISense_Damage::ReportDamageEvent(
         this,             // WorldContextObject
-        OtherActor,     // °ø°İ¹ŞÀº ¾×ÅÍ
-        GetOwner(),       // °ø°İÇÑ ¾×ÅÍ
-        DamageInfo.Amount,     // µ¥¹ÌÁö·®
-        GetOwner()->GetActorLocation(),    // ÀÌº¥Æ® ¹ß»ı À§Ä¡ (º¸Åë Instigator À§Ä¡)
-        Hit.ImpactPoint,      // Ãæµ¹ À§Ä¡
-        NAME_None         // ÅÂ±× (ÇÊ¿äÇÏ¸é ÁöÁ¤ °¡´É)
+        OtherActor,     // ê³µê²©ë°›ì€ ì•¡í„°
+        GetOwner(),       // ê³µê²©í•œ ì•¡í„°
+        DamageInfo.Amount,     // ë°ë¯¸ì§€ëŸ‰
+        GetOwner()->GetActorLocation(),    // ì´ë²¤íŠ¸ ë°œìƒ ìœ„ì¹˜ (ë³´í†µ Instigator ìœ„ì¹˜)
+        Hit.ImpactPoint,      // ì¶©ëŒ ìœ„ì¹˜
+        NAME_None         // íƒœê·¸ (í•„ìš”í•˜ë©´ ì§€ì • ê°€ëŠ¥)
     );
     OnAttackEnd.Broadcast();
 }
@@ -754,34 +754,51 @@ void UCP_Attacks::ReportDamageEvent(UObject* WorldContextObject, AActor* Damaged
 
 }
 
-void UCP_Attacks::OnMontageCompleted(UAnimMontage* Montage, bool bInterrupted)
+void UCP_Attacks::OnMontageCompleted_UseInterrupted(UAnimMontage* Montage, bool bInterrupted)
 {
-    //Interrupted ¸¦ ¿©±â´Ù°¡ ¾µ¼ö ÀÖ´Âµ¥, ¾îÂ÷ÇÇ µÇµç ¾ÈµÇµç ¶È°°ÀÌ OnInterrupted »ç¿ëÇÒ°ÍÀÓ
-    //  ºĞ±â¹®À» ÅëÇØ¼­ trueÀÏ¶§ complete ¾Æ´Ò¶§´Â interrupted ÀÓ
-    OnInterrupted();
+    // Ownerê°€ IEnemyAIInterfaceë¥¼ êµ¬í˜„í–ˆëŠ”ì§€ í™•ì¸
+    if (GetOwner()->GetClass()->ImplementsInterface(UEnemyAIInterface::StaticClass()))
+    {
+        // AttackEnd í˜¸ì¶œ
+        IEnemyAIInterface::Execute_AttackEnd(GetOwner(), CurrentAttackTarget);
+    }
+    if (bInterrupted == true) 
+    {
+        OnInterrupted(true);
+    }
+}
+
+void UCP_Attacks::OnMontageCompleted_NotUseInterrupted(UAnimMontage* Montage, bool bInterrupted)
+{
+    // Ownerê°€ IEnemyAIInterfaceë¥¼ êµ¬í˜„í–ˆëŠ”ì§€ í™•ì¸
+    if (GetOwner()->GetClass()->ImplementsInterface(UEnemyAIInterface::StaticClass()))
+    {
+        // AttackEnd í˜¸ì¶œ
+        IEnemyAIInterface::Execute_AttackEnd(GetOwner(), CurrentAttackTarget);
+    }
 }
 
 void UCP_Attacks::OnMontageBlendedOut(UAnimMontage* Montage, bool bInterrupted)
 {
     if (bInterrupted)
     {
-        // Owner°¡ IDamageableInterface¸¦ ±¸ÇöÇß´ÂÁö È®ÀÎ
+        // Ownerê°€ IDamageableInterfaceë¥¼ êµ¬í˜„í–ˆëŠ”ì§€ í™•ì¸
         if (GetOwner() && GetOwner()->GetClass()->ImplementsInterface(UDamageableInterface::StaticClass()))
         {
-            // SetIsInterruptible È£Ãâ
+            // SetIsInterruptible í˜¸ì¶œ
             IDamageableInterface::Execute_SetIsInterruptible(GetOwner(), true);
         }
 
-        // Owner°¡ IEnemyAIInterface¸¦ ±¸ÇöÇß´ÂÁö È®ÀÎ
+        // Ownerê°€ IEnemyAIInterfaceë¥¼ êµ¬í˜„í–ˆëŠ”ì§€ í™•ì¸
         if (GetOwner() && GetOwner()->GetClass()->ImplementsInterface(UEnemyAIInterface::StaticClass()))
         {
-            // AttackEnd È£Ãâ
+            // AttackEnd í˜¸ì¶œ
             IEnemyAIInterface::Execute_AttackEnd(GetOwner(),CurrentAttackTarget);
         }
     }
     else
     {
-        // Blendout Ã³¸®
+        // Blendout ì²˜ë¦¬
     }
 }
 
@@ -789,13 +806,17 @@ void UCP_Attacks::OnMontageBlendedOut(UAnimMontage* Montage, bool bInterrupted)
 void UCP_Attacks::OnNotifyBeginReceived_GroundSmash(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointPayload)
 {
     if (NotifyName == "Smash")
+    {
         AOEDamage(CurrentRadius, CurrentAttackInfo.DamageInfo);
+    }
 }
 
 void UCP_Attacks::OnNotifyBeginReceived_PrimaryMeleeAttack(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointPayload)
 {
     if (NotifyName == "Slash")
+    {
         SphereTraceDamage(CurrentRadius, CurrentLength, CurrentAttackInfo.DamageInfo);
+    }
 }
 
 void UCP_Attacks::OnNotifyBeginReceived_LongRangeMeleeAttack(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointPayload)
@@ -809,9 +830,13 @@ void UCP_Attacks::OnNotifyBeginReceived_LongRangeMeleeAttack(FName NotifyName, c
 void UCP_Attacks::OnNotifyBeginReceived_SpinningMeleeAttack(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointPayload)
 {
     if (NotifyName == "Slash")
-        SphereTraceDamage(20.0f,200.0f,CurrentAttackInfo.DamageInfo);
+    {
+        SphereTraceDamage(20, 200, CurrentDamageInfo);
+    }
     if (NotifyName == "AOESlash")
-        AOEDamage(300.0f,CurrentAttackInfo.DamageInfo);
+    {
+        AOEDamage(300.0f, CurrentAttackInfo.DamageInfo);
+    }
 }
 void UCP_Attacks::OnNotifyBeginReceived_BasicMageSpell(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointPayload)
 {
@@ -821,7 +846,7 @@ void UCP_Attacks::OnNotifyBeginReceived_BasicMageSpell(FName NotifyName, const F
        TempLocation= CurrentMeshComponent->GetSocketLocation("RightHand");
        FTransform TempTransform(FRotator::ZeroRotator, TempLocation, FVector(1.0f, 1.0f, 1.0f));
 
-        MagicSpell(TempTransform,CurrentAttackInfo.AttackTarget,CurrentAttackInfo.DamageInfo,NULL);//ÀÌºÎºĞ¿¡¼­ ¾î¶² projectile class ¸¦ ¾µÁö Á¤ÇØÁà¾ßÇÑ´Ù.
+        MagicSpell(TempTransform,CurrentAttackInfo.AttackTarget,CurrentAttackInfo.DamageInfo);//ì´ë¶€ë¶„ì—ì„œ ì–´ë–¤ projectile class ë¥¼ ì“¸ì§€ ì •í•´ì¤˜ì•¼í•œë‹¤.
     }
 }
 void UCP_Attacks::OnNotifyBeginReceived_BarrageMagicSpell(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointPayload)
@@ -841,26 +866,19 @@ void UCP_Attacks::OnNotifyBeginReceived_BarrageMagicSpell(FName NotifyName, cons
 
 
         FTransform TempTransform(LookAtRotation, TempLocation, FVector(1.0f, 1.0f, 1.0f));
-        MagicSpell(TempTransform, CurrentAttackInfo.AttackTarget, CurrentAttackInfo.DamageInfo, false);
+        MagicSpell(TempTransform, CurrentAttackInfo.AttackTarget, CurrentAttackInfo.DamageInfo);
     }
 }
 
-void UCP_Attacks::OnInterrupted()
+void UCP_Attacks::OnInterrupted(bool binterruptible)
 {
     if (GetOwner())
     {
-        // Owner°¡ IEnemyAIInterface¸¦ ±¸ÇöÇß´ÂÁö È®ÀÎ
-        if (GetOwner()->GetClass()->ImplementsInterface(UEnemyAIInterface::StaticClass()))
-        {
-            // AttackEnd È£Ãâ
-            IEnemyAIInterface::Execute_AttackEnd(GetOwner(), CurrentAttackTarget);
-        }
-
-        // Owner°¡ IDamageableInterface¸¦ ±¸ÇöÇß´ÂÁö È®ÀÎ
+        // Ownerê°€ IDamageableInterfaceë¥¼ êµ¬í˜„í–ˆëŠ”ì§€ í™•ì¸
         if (GetOwner()->GetClass()->ImplementsInterface(UDamageableInterface::StaticClass()))
         {
-            // SetIsInterruptible È£Ãâ
-            IDamageableInterface::Execute_SetIsInterruptible(GetOwner(), true);
+            // SetIsInterruptible í˜¸ì¶œ
+            IDamageableInterface::Execute_SetIsInterruptible(GetOwner(), binterruptible);
         }
     }
 }
@@ -871,17 +889,17 @@ void UCP_Attacks::OnMontageInterrupted(UAnimMontage* Montage, bool bInterrupted)
     {
 
 
-        // Owner°¡ IEnemyAIInterface¸¦ ±¸ÇöÇß´ÂÁö È®ÀÎ
+        // Ownerê°€ IEnemyAIInterfaceë¥¼ êµ¬í˜„í–ˆëŠ”ì§€ í™•ì¸
         if (GetOwner()->GetClass()->ImplementsInterface(UEnemyAIInterface::StaticClass()))
         {
-            // AttackEnd È£Ãâ
+            // AttackEnd í˜¸ì¶œ
             IEnemyAIInterface::Execute_AttackEnd(GetOwner(), CurrentAttackTarget);
         }
 
-        // Owner°¡ IDamageableInterface¸¦ ±¸ÇöÇß´ÂÁö È®ÀÎ
+        // Ownerê°€ IDamageableInterfaceë¥¼ êµ¬í˜„í–ˆëŠ”ì§€ í™•ì¸
         if (GetOwner()->GetClass()->ImplementsInterface(UDamageableInterface::StaticClass()))
         {
-            // SetIsInterruptible È£Ãâ
+            // SetIsInterruptible í˜¸ì¶œ
             IDamageableInterface::Execute_SetIsInterruptible(GetOwner(), true);
         }
     }

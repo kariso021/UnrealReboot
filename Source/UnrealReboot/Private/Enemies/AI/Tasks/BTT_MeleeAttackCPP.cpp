@@ -31,8 +31,8 @@ EBTNodeResult::Type UBTT_MeleeAttackCPP::ExecuteTask(UBehaviorTreeComponent& Own
     }
 
     // EnemyMelee로 캐스팅
-    EnemyBase = Cast<AEnemyMelee>(ControlledPawn);
-    if (!EnemyBase)
+    EnemyMelee = Cast<AEnemyMelee>(ControlledPawn);
+    if (!EnemyMelee)
     {
         return EBTNodeResult::Failed;
     }
@@ -70,9 +70,9 @@ EBTNodeResult::Type UBTT_MeleeAttackCPP::ExecuteTask(UBehaviorTreeComponent& Own
     }
 
     // 공격 종료 이벤트 바인딩 (먼저 수행)
-    if (!EnemyBase->OnAttackEnd.IsAlreadyBound(this, &UBTT_MeleeAttackCPP::OnAttackFinished))
+    if (!EnemyMelee->OnAttackEnd.IsAlreadyBound(this, &UBTT_MeleeAttackCPP::OnAttackFinished))
     {
-        EnemyBase->OnAttackEnd.AddDynamic(this, &UBTT_MeleeAttackCPP::OnAttackFinished);
+        EnemyMelee->OnAttackEnd.AddDynamic(this, &UBTT_MeleeAttackCPP::OnAttackFinished);
     }
 
     // AttackStart 호출
@@ -99,7 +99,7 @@ EBTNodeResult::Type UBTT_MeleeAttackCPP::ExecuteTask(UBehaviorTreeComponent& Own
         AIController->SetFocus(AttackTarget);
 
         // 공격 실행
-        if (EnemyBase)
+        if (EnemyMelee)
         {
             switch (AttackName)
             {
@@ -107,16 +107,16 @@ EBTNodeResult::Type UBTT_MeleeAttackCPP::ExecuteTask(UBehaviorTreeComponent& Own
                 IEnemyAIInterface::Execute_Attack(ControlledPawn, AttackTarget);
                 break;
             case EM_Melee_Atttacks::ShortRangeAttack:
-                EnemyBase->ShortRangeAttack(AttackTarget);
+                EnemyMelee->ShortRangeAttack(AttackTarget);
                 break;
             case EM_Melee_Atttacks::LongRangeAttack:
-                EnemyBase->LongRangeAttack(AttackTarget);
+                EnemyMelee->LongRangeAttack(AttackTarget);
                 break;
             case EM_Melee_Atttacks::SpinningAttack:
-                EnemyBase->SpinningAttack(AttackTarget);
+                EnemyMelee->SpinningAttack(AttackTarget);
                 break;
             case EM_Melee_Atttacks::GroundSmashAttack:
-                EnemyBase->GroundSmashAttack(AttackTarget);
+                EnemyMelee->GroundSmashAttack(AttackTarget);
                 break;
             default:
                 break;
@@ -134,7 +134,7 @@ EBTNodeResult::Type UBTT_MeleeAttackCPP::ExecuteTask(UBehaviorTreeComponent& Own
         IEnemyAIInterface::Execute_AttackEnd(ControlledPawn, AttackTarget);
 
         // 이벤트 바인딩 해제 (실패 시)
-        EnemyBase->OnAttackEnd.RemoveDynamic(this, &UBTT_MeleeAttackCPP::OnAttackFinished);
+        EnemyMelee->OnAttackEnd.RemoveDynamic(this, &UBTT_MeleeAttackCPP::OnAttackFinished);
         return EBTNodeResult::Failed;
     }
 
@@ -150,9 +150,9 @@ void UBTT_MeleeAttackCPP::OnAttackFinished()
     if (CachedOwnerComp)
     {
         // 이벤트 바인딩 해제 (메모리 누수 방지)
-        if (EnemyBase)
+        if (EnemyMelee)
         {
-            EnemyBase->OnAttackEnd.RemoveDynamic(this, &UBTT_MeleeAttackCPP::OnAttackFinished);
+            EnemyMelee->OnAttackEnd.RemoveDynamic(this, &UBTT_MeleeAttackCPP::OnAttackFinished);
         }
 
         FinishLatentTask(*CachedOwnerComp, EBTNodeResult::Succeeded);

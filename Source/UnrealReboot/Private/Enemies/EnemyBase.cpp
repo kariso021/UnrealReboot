@@ -3,6 +3,8 @@
 
 #include "Enemies/EnemyBase.h"
 #include "AI/AIC_EnemyBaseCPP.h"
+#include "Components/CapsuleComponent.h"
+#include "../Widget/W_HealthBarCPP.h"
 
 // Sets default values
 AEnemyBase::AEnemyBase()
@@ -10,8 +12,7 @@ AEnemyBase::AEnemyBase()
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
-
-
+	GetCapsuleComponent()->InitCapsuleSize(35.f, 90.0f);
 	//Create an HealthBar Component and Attatch to Mesh component
 	HealthBarComp = CreateDefaultSubobject<UWidgetComponent>(TEXT("HealthBar"));
 	HealthBarComp->SetupAttachment(GetMesh()); // Mesh에 바로 부착
@@ -54,26 +55,28 @@ void AEnemyBase::BeginPlay()
 
 
 
-		//--------------------------Helath Bar 잠깐 비활성화-------------------------------------------
+		//--------------------------Helath Bar-------------------------------------------
 		if (HealthBarComp && HealthBarComp->GetUserWidgetObject() == nullptr)
 		{
 			if (HealthBarComp->GetUserWidgetObject() == nullptr)
 			{
-				UUserWidget* HealthBarWidget = CreateWidget<UUserWidget>(GetWorld(), HealthBarWidgetClass);
+				UW_HealthBarCPP* HealthBarWidget = CreateWidget<UW_HealthBarCPP>(GetWorld(), HealthBarWidgetClass);
 				if (HealthBarWidget)
 				{
 					HealthBarComp->SetWidget(HealthBarWidget);
+					HealthBarWidget->SetDamageableActor(this);
 				}
 			}
 
 			HealthBarComp->SetVisibility(true);
 		}
+
 		HealthBarComp->SetVisibility(true);//Propagate To Children  자동화(Protect 로 Comp 선언했음)
 	
+
+		//---------------------------------------------------------------------------------------------------------
 			DamageSystemComponent->OnDeath.AddDynamic(this, &AEnemyBase::Die);
 			DamageSystemComponent->OnDamageResponse.AddDynamic(this, &AEnemyBase::HitResponse);
-		
-
 	}
 	
 }
@@ -114,8 +117,6 @@ bool AEnemyBase::IsDead_Implementation()
 
 bool AEnemyBase::TakeDamage_Implementation(FDamageInfo& DamageInfo, AActor* DamageCauser)
 {
-
-
 	return DamageSystemComponent->TakeDamageCPP(DamageInfo, DamageCauser);
 }
 

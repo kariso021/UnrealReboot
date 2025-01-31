@@ -148,9 +148,6 @@ void AProjectileBase::InitializeProjectile(float InputSpeed, float InputGravity,
 
 void AProjectileBase::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
-	UE_LOG(LogTemp, Display, TEXT("Onhit!"));
-	UE_LOG(LogTemp, Warning, TEXT("Projectile hit: %s (Component: %s)"),
-		*OtherActor->GetName(), *OtherComp->GetName());
 	OnProjectileImpact.Broadcast(OtherActor,Hit);
 	
 	SpawnImpactEffect(Hit.Location);

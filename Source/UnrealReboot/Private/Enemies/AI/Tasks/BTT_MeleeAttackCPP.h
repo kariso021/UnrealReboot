@@ -45,7 +45,7 @@ private:
 
 	UBehaviorTreeComponent* CachedOwnerComp;
 
-	class AEnemyMelee* EnemyBase;
+	class AEnemyMelee* EnemyMelee;
 	class AAIController* CachedAIController;
 	
 };

@@ -32,6 +32,7 @@ void AEnemyMelee::Tick(float DeltaTime)
 
 void AEnemyMelee::GroundSmashAttack(AActor* AttackTarget)
 {
+	UE_LOG(LogTemp, Display, TEXT("GroundSmashExecuted"));
 	// DamageInfo 생성 및 초기화
 	FDamageInfo DamageInfo;
 	DamageInfo.Amount = 25.0f;

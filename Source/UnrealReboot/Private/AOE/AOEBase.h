@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "../DamageSystem/DamageSystem.h"
 #include "AOEBase.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAOEOverlapActor,AActor*, DamageCauser);
@@ -17,6 +18,8 @@ class AAOEBase : public AActor
 public:	
 	// Sets default values for this actor's properties
 	AAOEBase();
+
+	virtual void BeginPlay() override;
 
 	UPROPERTY(BlueprintAssignable, Category = "OnAOEOver")
 	FOnAOEOverlapActor OnAOEOverlapActor;
@@ -42,17 +45,21 @@ private:
 
 
 
-
-protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
-
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
+	void SetOptionOfAOE(bool DrawDebugsphere,bool IgnoreInstigator, bool triggerOnBeginPlay);
+
 	
 
+//DamageInfo ÀúÀå¿ë
+private:
+	FDamageInfo StoredDamageInfo;
+
+public:
+	void SetDamageInfo(FDamageInfo& NewDamageInfo) { StoredDamageInfo = NewDamageInfo; }
+	FDamageInfo& GetDamageInfo()  { return StoredDamageInfo; }
 
 
 };

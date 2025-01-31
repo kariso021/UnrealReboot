@@ -22,6 +22,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnWeaponEquippedDelegate);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnWeaponUnEquippedDelegate);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnBlockEndedDelegate);
 
+class UW_HealthBarCPP;//전방선언자
+
 
 
 
@@ -151,10 +153,10 @@ protected:
     UWidgetComponent* HealthBarComp;
 
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
-    TSubclassOf<UUserWidget> HealthBarWidgetClass;
+    UPROPERTY(EditDefaultsOnly, Category = "Widget")
+    TSubclassOf<UW_HealthBarCPP> HealthBarWidgetClass;
 
-    UPROPERTY()
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
     UCP_Attacks* AttackComponent;//<- 포인터 안쓰면 가비지 컬렉터 오류 난다. 여기 말고 protect로 base 에 쓰는게?
 
     UPROPERTY()

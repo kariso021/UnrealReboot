@@ -6,6 +6,7 @@
 #include <GameFramework/CharacterMovementComponent.h>
 #include <Kismet/GameplayStatics.h>
 #include <Kismet/KismetMathLibrary.h>
+#include "../Widget/Player_HUD_CPP.h"
 
 // Sets default values
 AMainPlayer::AMainPlayer()
@@ -57,6 +58,19 @@ AMainPlayer::AMainPlayer()
     bMeleeAttackExcute = false;
     bRangeAttackExcute = false;
 
+    //--------------------------------------- 에임 부분
+
+     // 기본 및 조준 시 카메라 오프셋 설정
+    DefaultBoomOffset = FVector(0.f, 60.f, 30.f);  // 기본 오프셋
+    AimBoomOffset = FVector(200.f, 65.f, 45.f);      // 조준 시 카메라 당겨짐
+
+    // Timeline 초기화
+    AimTimeline = CreateDefaultSubobject<UTimelineComponent>(TEXT("AimTimeline"));
+
+    //-----------Dodge 변수
+
+    readyToDodge = false;
+
 
 
 
@@ -76,6 +90,17 @@ void AMainPlayer::BeginPlay()
             Subsystem->AddMappingContext(InputMappingContext, 0);
         }
     }
+
+    // Curve 데이터가 존재하면 Timeline 설정 -> 에임 부드럽게 해주는 부분
+    if (AimCurve)
+    {
+        FOnTimelineFloat ProgressFunction;
+        ProgressFunction.BindUFunction(this, FName("UpdateCameraOffset"));
+
+        AimTimeline->AddInterpFloat(AimCurve, ProgressFunction);
+    }
+
+    DisplayHUD();
 	
 }
 
@@ -124,6 +149,10 @@ void AMainPlayer::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
         EnhancedInputComponent->BindAction(Slot3Action, ETriggerEvent::Triggered, this, &AMainPlayer::Slot3);
 
         EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Triggered, this, &AMainPlayer::AcceptAttack);
+
+        EnhancedInputComponent->BindAction(DodgeAction, ETriggerEvent::Triggered, this, &AMainPlayer::DodgeTriggered);
+
+        EnhancedInputComponent->BindAction(DodgeAction, ETriggerEvent::Completed, this, &AMainPlayer::DodgeCompleted);
 
     }
 
@@ -217,13 +246,32 @@ bool AMainPlayer::CheckCanShoot()
 
 void AMainPlayer::DodgeDirection(float distance)
 {
+    //개선 버전 그냥 Normaliszation 사용하는거보다 훨씬 안전함
     FVector Velocity = GetVelocity();
-    Velocity.Normalize();
+    FVector DodgeDirection = Velocity.GetSafeNormal(); // 방향 벡터 정규화
 
-    FVector ActorLocation = GetActorLocation();
-    FVector TargetLocation = ActorLocation + Velocity * distance;
+    if (!DodgeDirection.IsNearlyZero())
+    {
+        FVector StartLocation = GetActorLocation();
+        FVector EndLocation = StartLocation + (DodgeDirection * distance);
 
-    DodgeToLocation(TargetLocation);
+        // 충돌 검사
+        FHitResult HitResult;
+        FCollisionQueryParams TraceParams;
+        TraceParams.AddIgnoredActor(this); // 자기 자신은 충돌 감지 제외
+
+        bool bHit = GetWorld()->LineTraceSingleByChannel(
+            HitResult, StartLocation, EndLocation, ECC_Visibility, TraceParams
+        );
+
+        if (bHit)
+        {
+            // 벽에 부딪히면 충돌 지점까지만 이동
+            EndLocation = HitResult.Location - (DodgeDirection * 10.0f); // 약간의 여유를 두어 벽에 붙지 않도록 조정
+        }
+
+        DodgeToLocation(EndLocation);
+    }
 }
 
 void AMainPlayer::DodgeToLocation(const FVector& Location)
@@ -233,20 +281,20 @@ void AMainPlayer::DodgeToLocation(const FVector& Location)
         bHasDodged = true;
 
         // Effect Start
-        UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), DodgeEffect1, Location, FRotator::ZeroRotator, FVector(0.25f), true);
+        UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), DodgeEffect_Start, Location, FRotator::ZeroRotator, FVector(0.25f), true);
 
         // Effect Tail
         FVector MyLocation = GetActorLocation();
         FRotator LookAtRotation = FRotationMatrix::MakeFromX(Location - MyLocation).Rotator();
-        UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), DodgeEffect2, Location, LookAtRotation, FVector(1.0f), true);
+        UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), DodgeEffect_Tail, Location, LookAtRotation, FVector(1.0f), true);
 
         if(CameraBoom)
         CameraBoom->bEnableCameraLag=true;
 
         //Effect End
-        UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), DodgeEffect3, Location, FRotator::ZeroRotator, FVector(0.25f), true);
+        UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), DodgeEffect_End, Location, FRotator::ZeroRotator, FVector(0.25f), true);
 
-
+        SetActorLocation(Location, false, nullptr, ETeleportType::TeleportPhysics);
         UGameplayStatics::PlaySoundAtLocation(this, DodgeSound, Location);
 
         if (GetMesh())
@@ -260,7 +308,7 @@ void AMainPlayer::DodgeToLocation(const FVector& Location)
 
         GetMesh()->SetVisibility(true, true);
 
-        GetWorld()->GetTimerManager().SetTimer(DelayTimerHandle, this, &AMainPlayer::WhenBeforeReset, 0.8f, false);
+        GetWorld()->GetTimerManager().SetTimer(DelayTimerHandle, this, &AMainPlayer::WhenBeforeResetDodge, 0.8f, false);
 
     }
 }
@@ -275,13 +323,41 @@ void AMainPlayer::WhenActionAfterDodgeEnd()
     DamageSystemComponent->SetInvincible(false);//무적상태 해재
 }
 
-void AMainPlayer::WhenBeforeReset()
+void AMainPlayer::WhenBeforeResetDodge()
 {
     ResetDodge();
 }
 
 void AMainPlayer::OnDeath()
 {
+}
+
+//------------------------------------------DisplayHUD
+
+void AMainPlayer::DisplayHUD()
+{
+    if (!HUDWidgetClass) return; // HUD 클래스를 설정하지 않았다면 리턴
+
+    // HUD 위젯이 이미 존재하는 경우, Visibility만 변경
+    if (HUDWidget)
+    {
+        if (!HUDWidget->IsInViewport()) // Viewport에 추가되지 않았다면 추가
+        {
+            HUDWidget->AddToViewport();
+        }
+
+        HUDWidget->SetVisibility(ESlateVisibility::Visible); // 보이도록 설정
+        return;
+    }
+
+    // HUD가 없으면 새로 생성
+    HUDWidget = CreateWidget<UPlayer_HUD_CPP>(GetWorld(), HUDWidgetClass);
+    if (HUDWidget)
+    {
+        HUDWidget->SetPlayerReference(this);
+        HUDWidget->SetVisibility(ESlateVisibility::Visible); 
+        HUDWidget->AddToViewport(); // Viewport에 추가
+    }
 }
 
 //--------------------------------Interface---------------------------------
@@ -441,6 +517,10 @@ void AMainPlayer::PerformMeleeAttack()
                 float MontageStartPosition = 0.0f;
                 FName MontageStartingSection = NAME_None;
 
+                //기존 바인딩 제거
+                AnimInstance->OnPlayMontageNotifyBegin.RemoveDynamic(this, &AMainPlayer::OnNotifyBeginReceived_SwordCombo1);
+                AnimInstance->OnPlayMontageNotifyEnd.RemoveDynamic(this, &AMainPlayer::OnNotifyEndReceived_SwordCombo1);
+
                 // 플레이 성공적일시
                 float MontageLength = AnimInstance->Montage_Play(SwordComboMontage01, MontagePlayRate, EMontagePlayReturnType::MontageLength, MontageStartPosition);
                 bool bPlayedSuccessfully = MontageLength > 0.f;
@@ -504,6 +584,7 @@ void AMainPlayer::PerformRangeAttack()
             AnimInstance->Montage_SetEndDelegate(OnMontageEndedDelegate, ShootingMontage);
 
             // Bind to Notify Begin and End for additional actions
+            AnimInstance->OnPlayMontageNotifyBegin.RemoveDynamic(this, &AMainPlayer::OnNotifyBeginReceived_RangeShooting);
             AnimInstance->OnPlayMontageNotifyBegin.AddDynamic(this, &AMainPlayer::OnNotifyBeginReceived_RangeShooting);
 
         }
@@ -592,6 +673,8 @@ void AMainPlayer::UnarmedStance()
 
         CharMovement->MaxWalkSpeed = defaultWalkSpeed;
     }
+    StopAiming();
+
     UnEquipAllWeapon();
 }
 
@@ -624,6 +707,13 @@ void AMainPlayer::EnterRangedStance()
         CharMovement->MaxWalkSpeed = magicWalkSpeed;
     }
 
+    //여기에 PlayerHud 관련 변수 하나 만들어주고
+
+
+    //Aim 확대 기능
+
+    StartAiming();
+
 
 
 
@@ -649,6 +739,11 @@ void AMainPlayer::Move(const FInputActionValue& Value)
         // add movement 
         AddMovementInput(ForwardDirection, MovementVector.Y);
         AddMovementInput(RightDirection, MovementVector.X);
+
+        if (readyToDodge)
+        {
+            DodgeDirection(300.0f);//대쉬 기능
+        }
     }
 }
 
@@ -663,6 +758,16 @@ void AMainPlayer::Look(const FInputActionValue& Value)
         AddControllerYawInput(LookAxisVector.X);
         AddControllerPitchInput(LookAxisVector.Y);
     }
+}
+
+void AMainPlayer::DodgeTriggered(const FInputActionValue& Value)
+{
+    readyToDodge = true;
+}
+
+void AMainPlayer::DodgeCompleted(const FInputActionValue& Value)
+{
+    readyToDodge = false;
 }
 
 void AMainPlayer::Slot1(const FInputActionValue& Value)
@@ -705,12 +810,30 @@ void AMainPlayer::OnNotifyBeginReceived_SwordCombo1(FName NotifyName, const FBra
 {
     if (NotifyName == "Slash")
     {
+        FDamageInfo ComboDamageInfo;
+        ComboDamageInfo.Amount = 10;
+        ComboDamageInfo.CanBeBlocked = true;
+        ComboDamageInfo.CanBeParried = true;
+        ComboDamageInfo.ShouldDamageInvincible = false;
+        ComboDamageInfo.DamageResponse = EM_DamageResponse::HitReaction;
+        ComboDamageInfo.DamageType = EM_DamageType::Melee;
+        ComboDamageInfo.ShouldForceInterrupt = false;
+        AttacksComponent->SphereTraceDamage(20, 50, ComboDamageInfo);
+
 
     }
 
     if (NotifyName == "AOESlash")
     {
-
+        FDamageInfo AOEDamageInfo;
+        AOEDamageInfo.Amount = 15;
+        AOEDamageInfo.CanBeBlocked = false;
+        AOEDamageInfo.CanBeParried = false;
+        AOEDamageInfo.ShouldDamageInvincible = false;
+        AOEDamageInfo.DamageResponse = EM_DamageResponse::None;
+        AOEDamageInfo.DamageType = EM_DamageType::Explosion;
+        AOEDamageInfo.ShouldForceInterrupt = true;
+        AttacksComponent->AOEDamage(300, AOEDamageInfo);
     }
 
     if (NotifyName == "ResumeComboWindow")
@@ -814,10 +937,7 @@ void AMainPlayer::OnNotifyBeginReceived_RangeShooting(FName NotifyName, const FB
         ShootingDamageInfo.ShouldForceInterrupt = false;
         ShootingDamageInfo.ShouldDamageInvincible = false;
 
-        AttacksComponent->MagicSpell(ShootingTransform, NULL, ShootingDamageInfo, ProjectileBullet);
-
-
-
+        AttacksComponent->MagicSpell(ShootingTransform, NULL, ShootingDamageInfo);
     }
 }
 
@@ -833,12 +953,30 @@ void AMainPlayer::OnInterrupted_RangeShooting()
     ResetRangeAttack();
 }
 
-//--------------------------Dodge
+//------------------------------------Aiming 관련 함수
 
-void AMainPlayer::Dodge(const FInputActionValue& Value)
+void AMainPlayer::StartAiming()
 {
-    
+
+    //isAiming=true;
+    if (AimTimeline)
+    {
+        AimTimeline->PlayFromStart();
+    }
 }
 
-//-----------------------------------------------------------------------------------------
+void AMainPlayer::StopAiming()
+{
+    //isAiming=false;
+    if (AimTimeline)
+    {
+        AimTimeline->Reverse();
+    }
+}
 
+
+void AMainPlayer::UpdateCameraOffset(float Alpha) // begin에서 바인드시켜서 카메라 오프셋 조정
+{
+    FVector NewOffset = FMath::Lerp(DefaultBoomOffset, AimBoomOffset, Alpha);
+    CameraBoom->SocketOffset = NewOffset;
+}

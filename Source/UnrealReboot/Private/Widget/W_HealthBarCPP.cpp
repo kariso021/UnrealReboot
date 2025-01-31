@@ -12,7 +12,7 @@ float UW_HealthBarCPP::GetPercent()
     }
 
     // DamageableActor가 IDamageableInterface를 구현했는지 확인
-    if (DamageableActor->GetClass()->ImplementsInterface(UDamageableInterface::StaticClass()))
+    if (DamageableActor->Implements<UDamageableInterface>())
     {
         const float CurrentHealth = IDamageableInterface::Execute_GetCurrentHealth(DamageableActor);
         const float MaxHealth = IDamageableInterface::Execute_GetMaxHealth(DamageableActor);
@@ -24,4 +24,9 @@ float UW_HealthBarCPP::GetPercent()
     }
 
     return 0.0f; // 인터페이스를 구현하지 않은 경우
+}
+
+void UW_HealthBarCPP::SetDamageableActor(AActor* actor)
+{
+    DamageableActor = actor;
 }

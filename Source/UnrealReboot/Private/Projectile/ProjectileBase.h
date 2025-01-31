@@ -113,4 +113,15 @@ private:
 
 	void UpdateHoming(float DeltaTime);
 
+
+
+	//DamageInfo ÀúÀå¿ë
+private:
+	FDamageInfo StoredDamageInfo;
+
+public:
+	void SetDamageInfo(FDamageInfo& NewDamageInfo) { StoredDamageInfo = NewDamageInfo; }
+	FDamageInfo& GetDamageInfo() { return StoredDamageInfo; }
+
+
 };

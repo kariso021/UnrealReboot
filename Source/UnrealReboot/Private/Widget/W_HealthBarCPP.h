@@ -14,6 +14,10 @@ class UW_HealthBarCPP : public UUserWidget
 {
 	GENERATED_BODY()
 
+public:
+	UFUNCTION()
+	void SetDamageableActor(AActor* actor);
+
 protected:
 	UFUNCTION(BlueprintCallable, Category = "Health")
 	float GetPercent();
@@ -21,6 +25,7 @@ protected:
 private:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health", meta = (AllowPrivateAccess = "true"))
 	AActor* DamageableActor;
+
 
 	
 	
