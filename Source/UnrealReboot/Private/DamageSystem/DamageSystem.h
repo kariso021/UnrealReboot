@@ -40,10 +40,8 @@ public:
 	UFUNCTION()
 	void ReturnAttackTokenCPP(int Amount);
 
-
 	UFUNCTION()
 	void SetAttackTokenCount(int token);
-
 
 	UFUNCTION()
 	int CanBeDamaged(bool IsInvincible, bool CanBeBlo);
@@ -97,14 +95,7 @@ private:
 	bool IsDeadCPP;
 	bool IsInterruptibleCPP;
 	bool IsBlockingCPP;
-
-
 	int AttackTokensCountCPP;
-
-	
-
-
-
 		
 };
 

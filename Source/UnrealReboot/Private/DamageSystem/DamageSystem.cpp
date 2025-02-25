@@ -23,10 +23,6 @@ UDamageSystem::UDamageSystem()
 	PrimaryComponentTick.bCanEverTick = true;
 
 
-
-
-
-
 	// ...
 }
 

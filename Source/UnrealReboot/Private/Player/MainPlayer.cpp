@@ -150,6 +150,8 @@ void AMainPlayer::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 
         EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Triggered, this, &AMainPlayer::AcceptAttack);
 
+        //Dodge
+
         EnhancedInputComponent->BindAction(DodgeAction, ETriggerEvent::Triggered, this, &AMainPlayer::DodgeTriggered);
 
         EnhancedInputComponent->BindAction(DodgeAction, ETriggerEvent::Completed, this, &AMainPlayer::DodgeCompleted);

@@ -27,9 +27,9 @@ AAIC_EnemyBaseCPP::AAIC_EnemyBaseCPP()//기본생성자
 
 
 	// Blackboard Key 초기화
-	AttackTargetKeyName = "AttackTarget";                // Blackboard에 정의된 키 이름
+	AttackTargetKeyName = "AttackTarget";
 	StateKeyName = "State";                              // AI의 상태
-	PointOfInterestKeyName = "PointOfInterest";          // 관심 지점
+	PointOfInterestKeyName = "PointOfInterest"; 
 	AttackRadiusKeyName = "AttackRadius";                // 공격 반경
 	DefendRadiusKeyName = "DefendRadius";                // 방어 반경
 	DistanceToAttackTargetKeyName = "DistanceToAttackTarget"; // 공격 대상까지 거리
@@ -82,7 +82,6 @@ void AAIC_EnemyBaseCPP::OnPossess(APawn* InPawn)
 	}
 
 
-		// InPawn이 EnemyAIInterface를 구현했는지 확인
 		if (InPawn && InPawn->GetClass()->ImplementsInterface(UEnemyAIInterface::StaticClass())) //InPawn->Implements<UEnemyAIInterface()> 가 더 권장되는 방식
 		{
 			// 인터페이스의 Execute_ 함수를 호출하여 데이터를 가져옴
@@ -117,7 +116,7 @@ void AAIC_EnemyBaseCPP::OnPossess(APawn* InPawn)
 
 void AAIC_EnemyBaseCPP::OnUnPossess()
 {
-	Super::OnUnPossess();  // 상위 클래스의 OnUnPossess 호출
+	Super::OnUnPossess();  
 
 	GetWorldTimerManager().ClearTimer(CheckForgottenActorsTimer);
 	CheckForgottenActorsTimer.Invalidate();
@@ -381,7 +380,7 @@ void AAIC_EnemyBaseCPP::HandleLostSight(AActor* Actor)
 			//일정 기간 탐색하다가 TimeToSeekAfterLosingSight 동안만 발동하고싶음
 			GetWorldTimerManager().SetTimer(SeekAttackTargetTimer, this, &AAIC_EnemyBaseCPP::SeekAttackTarget, TimeToSeekAfterLosingSight, false);
 		}
-		break; //Case문안에서 선언으르 원할시 중괄호로 묶어둬야함 -> case 문 내에서 변수를 선언하면 컴파일 시 스택영역의 크기를 정확히 알 수 없기 때문
+		break; 
 		
 		default:
 			break;
@@ -439,7 +438,7 @@ FCheckSensedStimulus AAIC_EnemyBaseCPP::CanSenseActor(AActor* Actor, EM_AISense 
 				{
 					Result.Stimulus = Stimulus;
 					Result.Sensed = true;
-					break; // 매칭되는 자극을 찾았으므로 루프 탈출
+					break; 
 				}
 			}
 		}
@@ -485,7 +484,7 @@ void AAIC_EnemyBaseCPP::CheckForgottenSeenActor()
 void AAIC_EnemyBaseCPP::HandleForgottenActor(AActor* Actor)
 {
 	if (!Actor) {
-		return; // Actor가 유효하지 않으면 함수를 종료
+		return;
 	}
 
 	// 액터를 KnownSeenActors 배열에서 제거
