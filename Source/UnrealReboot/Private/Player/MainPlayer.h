@@ -204,6 +204,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta = (AllowPrivateAccess = "true"))
 	UAnimMontage* ShootingMontage;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta = (AllowPrivateAccess = "true"))
+	UAnimMontage* SucessParryMontage;
+
 
 
 
@@ -220,6 +223,9 @@ public:
 
 	UFUNCTION()
 	void OnInterrupted_Block();
+
+	UFUNCTION()
+	void OnMontageCompleted_OnBlock(UAnimMontage* Montage, bool bInterrupted);
 
 
 
@@ -351,6 +357,14 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* AttackAction;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* BlockAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* ReloadAction;
+
+	
+
 	
 
 	// Movement Handlers
@@ -410,6 +424,16 @@ protected:
 	// Timeline 업데이트 함수
 	UFUNCTION()
 	void UpdateCameraOffset(float Alpha);
+
+
+	//Function of Block and Parry
+	void HandleOnBlocked(bool CanbeParried,AActor* DamageCauser);
+
+	void ParryAttack(AActor* AttackTarget);
+
+	void StartSlowMotion();
+
+	void EndSlowMotion();
 	
 
 

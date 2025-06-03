@@ -100,6 +100,11 @@ void AMainPlayer::BeginPlay()
         AimTimeline->AddInterpFloat(AimCurve, ProgressFunction);
     }
 
+    if (DamageSystemComponent)
+    {
+        DamageSystemComponent->OnBlocked.AddDynamic(this, &AMainPlayer::HandleOnBlocked);
+    }
+
     DisplayHUD();
 	
 }
@@ -156,6 +161,11 @@ void AMainPlayer::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 
         EnhancedInputComponent->BindAction(DodgeAction, ETriggerEvent::Completed, this, &AMainPlayer::DodgeCompleted);
 
+        //Reload
+        EnhancedInputComponent->BindAction(ReloadAction, ETriggerEvent::Triggered, this, &AMainPlayer::Reload);
+
+        //Block
+        EnhancedInputComponent->BindAction(BlockAction, ETriggerEvent::Triggered, this, &AMainPlayer::StartBlock);
     }
 
 
@@ -332,6 +342,15 @@ void AMainPlayer::WhenBeforeResetDodge()
 
 void AMainPlayer::OnDeath()
 {
+    GetMesh()->SetSimulatePhysics(true); // 물리 시뮬활성화
+    GetMesh()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics); // 충돌 
+    //플레이어 컨트롤러 불러오기
+    APlayerController* PlayerController = Cast<APlayerController>(GetController());
+    //인풋 Disable
+    DisableInput(PlayerController);
+    
+
+
 }
 
 //------------------------------------------DisplayHUD
@@ -423,8 +442,11 @@ void AMainPlayer::SetIsInvincible_Implementation(bool value)
 
 void AMainPlayer::StartBlock()
 {
-    if (Stance != EPlayerStance::Unarmed)
+    //block 이 melee 에서만 가능하게
+    if (Stance != EPlayerStance::Melee || bhasBlocked)
+	{
         return;
+	}
     
     if (!bhasBlocked)//Do once 똑같이 하기!
     {
@@ -628,6 +650,9 @@ void AMainPlayer::Reload()
 //--------------------------------------------------When Montage Animation Function------------------------------------------
 
 
+
+
+
 void AMainPlayer::OnMontageCompleted_Block(UAnimMontage* Montage, bool bInterrupted)
 {
     OnInterrupted_Block();//여기서 Interrupted 가 되던 안되던 어차피 Intterupted Block을 시행시킬거기때문에 bool 값이 어찌되든 상관없음
@@ -660,6 +685,15 @@ void AMainPlayer::OnInterrupted_Block()
     DamageSystemComponent->SetIsBlocking(false);
     ResetBlock();
 }
+
+
+//DamgeSystem에서 인자 받아온거 Block 처리하는 과정
+void AMainPlayer::OnMontageCompleted_OnBlock(UAnimMontage* Montage, bool bInterrupted)
+{
+    EndBlock(); // 블록 종료 함수 호출
+}
+
+
 
 //----------------------------------Stance-------------------------------
 
@@ -982,3 +1016,99 @@ void AMainPlayer::UpdateCameraOffset(float Alpha) // begin에서 바인드시켜서 카메
     FVector NewOffset = FMath::Lerp(DefaultBoomOffset, AimBoomOffset, Alpha);
     CameraBoom->SocketOffset = NewOffset;
 }
+
+
+//----------------------------------Parry and Block Function
+
+void AMainPlayer::HandleOnBlocked(bool CanbeParried,AActor* DamageCauser)
+{
+    //MontageToPlay 를 정하자
+    UAnimMontage* MontagToPlay;
+
+
+    if (CanbeParried && IsWithinParryCombo)
+    {
+        MontagToPlay = SucessParryMontage;
+    }
+	else
+	{
+		MontagToPlay = MontageBlock;
+	}
+
+    	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+        if (AnimInstance)
+        {
+            float MontagePlayRate = 1.0f;
+            float MontageStartPosition = 0.0f;
+
+            // 플레이 성공적일시
+            float MontageLength = AnimInstance->Montage_Play(MontagToPlay, MontagePlayRate, EMontagePlayReturnType::MontageLength, MontageStartPosition);
+            bool bPlayedSuccessfully = MontageLength > 0.f;
+
+            if (bPlayedSuccessfully)
+            {
+                // Complete 을 담당하는 EndDelegate
+                FOnMontageEnded OnMontageEndedDelegate;
+                OnMontageEndedDelegate.BindUObject(this, &AMainPlayer::OnMontageCompleted_OnBlock);
+            }
+        }
+
+        //이다음부터 하자
+        if (CanbeParried && IsWithinParryCombo)
+        {
+            ParryAttack(DamageCauser);
+        }
+
+	
+}
+
+
+void AMainPlayer::ParryAttack(AActor* AttackTarget)
+{
+    //DamageInfo에 대한것 작성
+    FDamageInfo DamageInfo;
+		DamageInfo.Amount = 20.0f; // 데미지 양
+        DamageInfo.CanBeBlocked = false; // 블록 가능 여부
+        DamageInfo.CanBeParried = false; // 패링 가능 여부
+        DamageInfo.DamageType = EM_DamageType::Melee; // 데미지 타입
+    IDamageableInterface::Execute_TakeDamage(AttackTarget,DamageInfo , GetOwner());
+
+    AimTimeline->PlayFromStart();
+    //Delay0.2초 걸어주고
+    GetWorld()->GetTimerManager().SetTimer(DelayTimerHandle, this, &AMainPlayer::StartSlowMotion, 0.2f, false);
+    
+
+
+    
+}
+
+void AMainPlayer::StartSlowMotion()
+{
+    // 1) 전역 시간 배율을 0.2로 설정 → 슬로우 모션
+    UGameplayStatics::SetGlobalTimeDilation(GetWorld(), 0.2f);
+
+    // 2) Delay(0.1) 후 슬로우 모션 해제 (bInIgnoreTimeDilation=true 로 실제 0.1초 대기)
+    const float SlowDuration = 0.1f;
+    GetWorld()->GetTimerManager().SetTimer(
+        DelayTimerHandle,
+        this,
+        &AMainPlayer::EndSlowMotion,
+        0.1f,
+        false);
+
+
+}
+
+// 슬로우 모션 해제 (Delay 0.1 후 호출)
+void AMainPlayer::EndSlowMotion()
+{
+    // 1) 전역 시간 배율을 1.0으로 복귀
+    UGameplayStatics::SetGlobalTimeDilation(GetWorld(), 1.0f);
+
+    // 2) AimTimeline을 Reverse 재생 (Curve 역순)
+    if (AimTimeline && AimCurve)
+    {
+        AimTimeline->Reverse();
+    }
+}
+
