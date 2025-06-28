@@ -3,14 +3,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "BehaviorTree/Decorators/BTDecorator_BlackboardBase.h"
+#include "BehaviorTree/BTDecorator.h"
 #include "BTD_CanSeeTargetCPP.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class UBTD_CanSeeTargetCPP : public UBTDecorator_BlackboardBase
+class UBTD_CanSeeTargetCPP : public UBTDecorator
 {
 	GENERATED_BODY()
 

@@ -118,7 +118,10 @@ void AEnemyMelee::SpinningAttack(AActor* AttackTarget)
 
 
 //나중에 두개 다 만들자
-void AEnemyMelee::EquipWeapon()
+
+
+
+void AEnemyMelee::EquipWeapon_Implementation()
 {
 	if (GetMesh() && UnSheathSwordMontage)
 	{
@@ -150,15 +153,13 @@ void AEnemyMelee::EquipWeapon()
 
 			}
 		}
-
-
-
 	}
+
 }
 
-void AEnemyMelee::UnEquipWeapon()
+void AEnemyMelee::UnequipWeapon_Implementation()
 {
-	if (GetMesh() && SheathSwordMontage)
+	if (GetMesh() && UnSheathSwordMontage)
 	{
 		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 
@@ -169,7 +170,7 @@ void AEnemyMelee::UnEquipWeapon()
 			FName MontageStartingSection = NAME_None;
 
 			// 플레이 성공적일시
-			float MontageLength = AnimInstance->Montage_Play(SheathSwordMontage, MontagePlayRate, EMontagePlayReturnType::MontageLength, MontageStartPosition);
+			float MontageLength = AnimInstance->Montage_Play(UnSheathSwordMontage, MontagePlayRate, EMontagePlayReturnType::MontageLength, MontageStartPosition);
 			bool bPlayedSuccessfully = MontageLength > 0.f;
 
 			if (bPlayedSuccessfully)
@@ -181,28 +182,22 @@ void AEnemyMelee::UnEquipWeapon()
 
 
 
-				AnimInstance->Montage_SetEndDelegate(OnMontageEndedDelegate, SheathSwordMontage);
+				AnimInstance->Montage_SetEndDelegate(OnMontageEndedDelegate, UnSheathSwordMontage);
 
 				// Bind to Notify Begin and End for additional actions
 				AnimInstance->OnPlayMontageNotifyBegin.AddDynamic(this, &AEnemyMelee::OnNotifyBeginReceived_UnEquipWeapon);
 
 			}
-			else {
-
-			}
 		}
-
-
-
 	}
-}
 
+
+
+}
 
 //----------------------Block
 
-void AEnemyMelee::BlockTrigger()
-{
-}
+
 
 //-------------------------------------------MontageFunction
 

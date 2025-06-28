@@ -10,6 +10,12 @@
 #include "Attacks/CP_Attacks.h"
 #include "EnemyBose.generated.h"
 
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnTeleportEndDelegate);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnFloatHeightReachedDelegate);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnFloatEndedDelegate);
+
+
 UCLASS()
 class AEnemyBoss : public AEnemyBase
 {
@@ -26,6 +32,18 @@ protected:
 public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
+
+	//Delegates
+	UPROPERTY()
+	FOnTeleportEndDelegate OnTeleportEnd;
+
+	UPROPERTY()
+	FOnFloatHeightReachedDelegate OnFloatHeightReached;
+
+	UPROPERTY()
+	FOnFloatEndedDelegate OnFloatEnded;
+
+
 
 
 

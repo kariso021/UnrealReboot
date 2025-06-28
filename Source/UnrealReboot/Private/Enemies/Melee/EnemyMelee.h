@@ -57,11 +57,12 @@ protected:
 
 	//------------------------Equip and UnEquip Weapon--------------------------------------- 나중에 만드는걸로
 
-	UFUNCTION(BlueprintCallable, Category = "Equip")
-	void EquipWeapon();
 
-	UFUNCTION(BlueprintCallable, Category = "Equip")
-	void UnEquipWeapon();
+
+	virtual void EquipWeapon_Implementation() override;
+
+
+	virtual void UnequipWeapon_Implementation() override;
 
 
 	//-----------------------------------------------------------------------------------------
@@ -71,10 +72,6 @@ protected:
 	//----------------------------Block and Suscess------Block 이미 만들어져있음
 
 
-
-
-	UFUNCTION(BlueprintCallable, Category = "Block")
-	void BlockTrigger();
 
 
 	//-----------------------------------------------
