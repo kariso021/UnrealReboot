@@ -30,10 +30,31 @@ UCP_Attacks::UCP_Attacks()
 // Called when the game starts
 void UCP_Attacks::BeginPlay()
 {
-	Super::BeginPlay();
+    Super::BeginPlay();
 
-	// ...
+    if (ACharacter* OwnerCharacter = Cast<ACharacter>(GetOwner()))
+    {
+        if (UAnimInstance* AnimInstance = OwnerCharacter->GetMesh()->GetAnimInstance())
+        {
+            // 컴포넌트 시작 시, 모든 노티파이를 수신할 단일 핸들러를 '한 번만' 등록합니다.
+            AnimInstance->OnPlayMontageNotifyBegin.AddDynamic(this, &UCP_Attacks::HandleMontageNotify);
+        }
+    }
 	
+}
+
+void UCP_Attacks::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+    // 컴포넌트 종료 시, 등록했던 핸들러를 안전하게 해제합니다.
+    if (ACharacter* OwnerCharacter = Cast<ACharacter>(GetOwner()))
+    {
+        if (UAnimInstance* AnimInstance = OwnerCharacter->GetMesh()->GetAnimInstance())
+        {
+            AnimInstance->OnPlayMontageNotifyBegin.RemoveDynamic(this, &UCP_Attacks::HandleMontageNotify);
+        }
+    }
+
+    Super::EndPlay(EndPlayReason);
 }
 
 
@@ -47,10 +68,12 @@ void UCP_Attacks::TickComponent(float DeltaTime, ELevelTick TickType, FActorComp
 
 
 
-TArray<AActor*> UCP_Attacks::DamageAllNonTeamMembers(const TArray<FHitResult>& Hits, FDamageInfo& DamageInfo)
+TArray<AActor*> UCP_Attacks::DamageAllNonTeamMembers(const TArray<FHitResult>& Hits, const FDamageInfo& DamageInfo)
 {
     TArray<AActor*> ActorsDamagedSoFar;
     
+	FDamageInfo CachedDamageInfo = DamageInfo; // DamageInfo를 캐시하여 사용
+
     // Hits 배열에 담긴 각 히트 결과에 대해 반복
     for (const FHitResult& Hit : Hits)
     {
@@ -68,7 +91,7 @@ TArray<AActor*> UCP_Attacks::DamageAllNonTeamMembers(const TArray<FHitResult>& H
                 // 팀이 다를 경우 Damage 처리
                 if (ActorTeamNumber != OwnerTeamNumber)
                 {
-                    IDamageableInterface::Execute_TakeDamage(HitActor, DamageInfo, GetOwner());
+                    IDamageableInterface::Execute_TakeDamage(HitActor, CachedDamageInfo, GetOwner());
                     ActorsDamagedSoFar.AddUnique(HitActor);
                 }
             }
@@ -243,7 +266,7 @@ void UCP_Attacks::MagicSpell(FTransform& SpawnTransform, AActor* Target, FDamage
     }
 }
 
-void UCP_Attacks::AOEDamage(float Radius, FDamageInfo& DamageInfo)
+void UCP_Attacks::AOEDamage(float Radius, const FDamageInfo& DamageInfo)
 {
     UWorld* World = GetWorld();
     if (!World || !AOEClass) return;
@@ -288,7 +311,7 @@ void UCP_Attacks::AOEDamageActor(AActor* HitActor)
     }
 }
 
-void UCP_Attacks::SphereTraceDamage(float Radius, float Length, FDamageInfo& DamageInfo)
+void UCP_Attacks::SphereTraceDamage(float Radius, float Length, const FDamageInfo& DamageInfo)
 {
     UWorld* World = GetWorld();
     if (!World) return;
@@ -416,297 +439,87 @@ void UCP_Attacks::OnLand(const FHitResult& Hit)
 
 void UCP_Attacks::GroundSmash(FAttackInfo& AttackInfo, float Radius)
 {
-    CurrentAttackInfo = AttackInfo;
-    CurrentRadius = Radius;
-
-    USkeletalMeshComponent* MeshComp = AttackBase(AttackInfo.AttackTarget);// 매쉬컴포넌트 받아오기
-    UAnimMontage* MontageToPlay = AttackInfo.Montage;
-
-    if (MeshComp && MontageToPlay)
-    {
-        UAnimInstance* AnimInstance = MeshComp->GetAnimInstance();
-        if (AnimInstance)
+    AttackBase(AttackInfo.AttackTarget);
+    ExecuteAttack_Internal(AttackInfo.Montage, "Smash", [this, Radius, DamageInfo = AttackInfo.DamageInfo](FName NotifyName)
         {
-            float MontagePlayRate = 1.0f;
-            float MontageStartPosition = 0.0f;
-            FName MontageStartingSection= NAME_None; 
-
-            // 플레이 성공적일시
-            float MontageLength = AnimInstance->Montage_Play(MontageToPlay, MontagePlayRate, EMontagePlayReturnType::MontageLength, MontageStartPosition);
-            bool bPlayedSuccessfully = MontageLength > 0.f;
-
-            if (IDamageableInterface* OwnerDmgInterface = Cast<IDamageableInterface>(GetOwner()))
-            {
-                IDamageableInterface::Execute_SetIsInterruptible(GetOwner(), false);
-            }
-
-            if (bPlayedSuccessfully)
-            {
-                // Optionally jump to a starting section
-                if (MontageStartingSection != NAME_None)
-                {
-                    AnimInstance->Montage_JumpToSection(MontageStartingSection, MontageToPlay);
-                }
-
-                // EndDelegtate 여기서 바인드
-                FOnMontageEnded OnMontageEndedDelegate;
-                OnMontageEndedDelegate.BindUObject(this, &UCP_Attacks::OnMontageCompleted_UseInterrupted);
-
-
-
-                AnimInstance->Montage_SetEndDelegate(OnMontageEndedDelegate, MontageToPlay);
-
-                // Bind to Notify Begin and End for additional actions
-                AnimInstance->OnPlayMontageNotifyBegin.RemoveDynamic(this, &UCP_Attacks::OnNotifyBeginReceived_GroundSmash);
-                AnimInstance->OnPlayMontageNotifyBegin.AddDynamic(this, &UCP_Attacks::OnNotifyBeginReceived_GroundSmash);
-   
-            }
-            OnInterrupted(false);
-        }
-    }
+            AOEDamage(Radius, DamageInfo);
+        });
 }
 
 void UCP_Attacks::PrimaryMeleeAttack(FAttackInfo& AttackInfo, float Radius, float Length)
 {
-    CurrentAttackInfo = AttackInfo;
-    CurrentRadius = Radius;
-    CurrentLength = Length;
-
-    USkeletalMeshComponent* MeshComp = AttackBase(AttackInfo.AttackTarget); // 매쉬 컴포넌트 받아오기
-    UAnimMontage* MontageToPlay = AttackInfo.Montage;
-
-    if (MeshComp && MontageToPlay)
-    {
-        UAnimInstance* AnimInstance = MeshComp->GetAnimInstance();
-        if (AnimInstance)
+    AttackBase(AttackInfo.AttackTarget);
+    ExecuteAttack_Internal(AttackInfo.Montage, "Slash", [this, Radius, Length, DamageInfo = AttackInfo.DamageInfo](FName NotifyName)
         {
-            float MontagePlayRate = 1.0f;
-            float MontageStartPosition = 0.0f;
-            FName MontageStartingSection = NAME_None;
-
-            // 애니메이션 재생
-            float MontageLength = AnimInstance->Montage_Play(MontageToPlay, MontagePlayRate, EMontagePlayReturnType::MontageLength, MontageStartPosition);
-            bool bPlayedSuccessfully = MontageLength > 0.f;
-
-            // Owner가 DamageableInterface를 구현했는지 확인
-            if (GetOwner() && GetOwner()->GetClass()->ImplementsInterface(UDamageableInterface::StaticClass()))
-            {
-                // 인터페이스 함수 호출
-                IDamageableInterface::Execute_SetIsInterruptible(GetOwner(), false);
-            }
-
-            if (bPlayedSuccessfully)
-            {
-                // 특정 섹션으로 이동
-                if (MontageStartingSection != NAME_None)
-                {
-                    AnimInstance->Montage_JumpToSection(MontageStartingSection, MontageToPlay);
-                }
-
-                // EndDelegate 바인드
-                FOnMontageEnded OnMontageEndedDelegate;
-                OnMontageEndedDelegate.BindUObject(this, &UCP_Attacks::OnMontageCompleted_NotUseInterrupted);
-
-                AnimInstance->Montage_SetEndDelegate(OnMontageEndedDelegate, MontageToPlay);
-
-                // Notify Begin 바인드
-                AnimInstance->OnPlayMontageNotifyBegin.RemoveDynamic(this, &UCP_Attacks::OnNotifyBeginReceived_PrimaryMeleeAttack);
-                AnimInstance->OnPlayMontageNotifyBegin.AddDynamic(this, &UCP_Attacks::OnNotifyBeginReceived_PrimaryMeleeAttack);
-            }
-            else
-            {
-                // 몽타주 재생 실패 처리
-                OnInterrupted(true);
-            }
-        }
-    }
+            SphereTraceDamage(Radius, Length, DamageInfo);
+        });
 }
 
 void UCP_Attacks::LongRangeMeleeAttack(FAttackInfo& AttackInfo)
 {
-    CurrentAttackInfo = AttackInfo;
-
-    USkeletalMeshComponent* MeshComp = AttackBase(AttackInfo.AttackTarget); // 매쉬 컴포넌트 받아오기
-    UAnimMontage* MontageToPlay = AttackInfo.Montage;
-
-    if (MeshComp && MontageToPlay)
-    {
-        UAnimInstance* AnimInstance = MeshComp->GetAnimInstance();
-        if (AnimInstance)
+    AttackBase(AttackInfo.AttackTarget);
+    // NAME_None을 전달하여 모든 노티파이를 람다 안에서 직접 처리
+    ExecuteAttack_Internal(AttackInfo.Montage, NAME_None, [this, AttackInfo](FName ReceivedNotifyName)
         {
-            float MontagePlayRate = 1.0f;
-            float MontageStartPosition = 0.0f;
-            FName MontageStartingSection = NAME_None; // 필요한 경우 설정
-
-            // 몽타주 재생 및 성공 여부 확인
-            float MontageLength = AnimInstance->Montage_Play(MontageToPlay, MontagePlayRate, EMontagePlayReturnType::MontageLength, MontageStartPosition);
-            bool bPlayedSuccessfully = MontageLength > 0.f;
-
-            // Owner가 IDamageableInterface를 구현했는지 확인
-            if (GetOwner() && GetOwner()->GetClass()->ImplementsInterface(UDamageableInterface::StaticClass()))
+            if (ReceivedNotifyName == "Slash")
             {
-                // SetIsInterruptible 호출
-                IDamageableInterface::Execute_SetIsInterruptible(GetOwner(), false);
+                SphereTraceDamage(20.0f, 200.0f, AttackInfo.DamageInfo);
             }
-
-            if (bPlayedSuccessfully)
+            else if (ReceivedNotifyName == "Jump")
             {
-                // 필요한 경우 특정 섹션으로 이동
-                if (MontageStartingSection != NAME_None)
-                {
-                    AnimInstance->Montage_JumpToSection(MontageStartingSection, MontageToPlay);
-                }
-
-                // OnMontageEnded 델리게이트 바인딩
-                FOnMontageEnded OnMontageEndedDelegate;
-                OnMontageEndedDelegate.BindUObject(this, &UCP_Attacks::OnMontageCompleted_UseInterrupted);
-                AnimInstance->Montage_SetEndDelegate(OnMontageEndedDelegate, MontageToPlay);
-
-                // Notify Begin 이벤트 바인딩
-                AnimInstance->OnPlayMontageNotifyBegin.RemoveDynamic(this, &UCP_Attacks::OnNotifyBeginReceived_LongRangeMeleeAttack);
-                AnimInstance->OnPlayMontageNotifyBegin.AddDynamic(this, &UCP_Attacks::OnNotifyBeginReceived_LongRangeMeleeAttack);
+                JumpToAttackTarget(AttackInfo.AttackTarget);
             }
-            OnInterrupted(false);
-        }
-    }
+        });
 }
 
 void UCP_Attacks::SpinningMeleeAttack(FAttackInfo& AttackInfo)
 {
-    CurrentAttackInfo = AttackInfo;
-
-    USkeletalMeshComponent* MeshComp = AttackBase(AttackInfo.AttackTarget); // 매쉬 컴포넌트 받아오기
-    UAnimMontage* MontageToPlay = AttackInfo.Montage;
-
-    if (MeshComp && MontageToPlay)
-    {
-        UAnimInstance* AnimInstance = MeshComp->GetAnimInstance();
-        if (AnimInstance)
+    AttackBase(AttackInfo.AttackTarget);
+    ExecuteAttack_Internal(AttackInfo.Montage, NAME_None, [this, DamageInfo = AttackInfo.DamageInfo](FName ReceivedNotifyName)
         {
-            float MontagePlayRate = 1.0f;
-            float MontageStartPosition = 0.0f;
-            FName MontageStartingSection = NAME_None; // 필요한 경우 설정
-
-            // 몽타주 재생 및 성공 여부 확인
-            float MontageLength = AnimInstance->Montage_Play(MontageToPlay, MontagePlayRate, EMontagePlayReturnType::MontageLength, MontageStartPosition);
-            bool bPlayedSuccessfully = MontageLength > 0.f;
-
-            // Owner가 IDamageableInterface를 구현했는지 확인
-            if (GetOwner() && GetOwner()->GetClass()->ImplementsInterface(UDamageableInterface::StaticClass()))
+            if (ReceivedNotifyName == "Slash")
             {
-                // SetIsInterruptible 호출
-                IDamageableInterface::Execute_SetIsInterruptible(GetOwner(), false);
+                SphereTraceDamage(20, 200, DamageInfo);
             }
-
-            if (bPlayedSuccessfully)
+            else if (ReceivedNotifyName == "AOESlash")
             {
-                //// 필요한 경우 특정 섹션으로 이동
-                //if (MontageStartingSection != NAME_None)
-                //{
-                //    AnimInstance->Montage_JumpToSection(MontageStartingSection, MontageToPlay);
-                //}
-
-                // OnMontageEnded 델리게이트 바인딩
-                FOnMontageEnded OnMontageEndedDelegate;
-                OnMontageEndedDelegate.BindUObject(this, &UCP_Attacks::OnMontageCompleted_UseInterrupted);
-                AnimInstance->Montage_SetEndDelegate(OnMontageEndedDelegate, MontageToPlay);
-
-                // Notify Begin 이벤트 바인딩
-                AnimInstance->OnPlayMontageNotifyBegin.RemoveDynamic(this, &UCP_Attacks::OnNotifyBeginReceived_SpinningMeleeAttack);
-                AnimInstance->OnPlayMontageNotifyBegin.AddDynamic(this, &UCP_Attacks::OnNotifyBeginReceived_SpinningMeleeAttack);
-
-                // Notify End 이벤트 바인딩
-                FOnMontageEnded OnMontageInterruptedDelegate;
-                OnMontageInterruptedDelegate.BindUObject(this, &UCP_Attacks::OnMontageInterrupted);
-                AnimInstance->Montage_SetEndDelegate(OnMontageInterruptedDelegate, MontageToPlay);
+                AOEDamage(300.0f, DamageInfo);
             }
-            OnInterrupted(false);
-        }
-    }
+        });
 }
 
 void UCP_Attacks::BasicMageSpell(FAttackInfo& AttackInfo)
 {
-    CurrentAttackInfo = AttackInfo;
-
-    USkeletalMeshComponent* MeshComp = AttackBase(AttackInfo.AttackTarget);// 매쉬컴포넌트 받아오기
-    UAnimMontage* MontageToPlay = AttackInfo.Montage;
-
-    if (MeshComp && MontageToPlay)
-    {
-        UAnimInstance* AnimInstance = MeshComp->GetAnimInstance();
-        if (AnimInstance)
+    USkeletalMeshComponent* MeshComp = AttackBase(AttackInfo.AttackTarget);
+    // 그냥  NotifyName을 사용하면 람다 캡처가 불가능하므로 mutable 사용 나중에 삭제예정
+	ExecuteAttack_Internal(AttackInfo.Montage, "Fire", [this, MeshComp, AttackInfo](FName NotifyName)mutable 
         {
-            float MontagePlayRate = 1.0f;
-            float MontageStartPosition = 0.0f;
-            FName MontageStartingSection; // Set if you have one
-
-            // Play the montage and check if played successfully
-            float MontageLength = AnimInstance->Montage_Play(MontageToPlay, MontagePlayRate, EMontagePlayReturnType::MontageLength, MontageStartPosition);
-            bool bPlayedSuccessfully = MontageLength > 0.f;
-
-            if (bPlayedSuccessfully)
+            if (MeshComp)
             {
-                // Optionally jump to a starting section
-                if (MontageStartingSection != NAME_None)
-                {
-                    AnimInstance->Montage_JumpToSection(MontageStartingSection, MontageToPlay);
-                }
-
-                // Bind the OnMontageEnded delegate
-                FOnMontageEnded OnMontageEndedDelegate;
-                OnMontageEndedDelegate.BindUObject(this, &UCP_Attacks::OnMontageCompleted_NotUseInterrupted);
-                AnimInstance->Montage_SetEndDelegate(OnMontageEndedDelegate, MontageToPlay);
-
-                // Bind to Notify Begin and End for additional actions
-                AnimInstance->OnPlayMontageNotifyBegin.RemoveDynamic(this, &UCP_Attacks::OnNotifyBeginReceived_BasicMageSpell);
-                AnimInstance->OnPlayMontageNotifyBegin.AddDynamic(this, &UCP_Attacks::OnNotifyBeginReceived_BasicMageSpell);
-
+                FVector Location = MeshComp->GetSocketLocation("RightHand");
+                FTransform SpawnTransform(FRotator::ZeroRotator, Location);
+                MagicSpell(SpawnTransform, AttackInfo.AttackTarget, AttackInfo.DamageInfo);
             }
-        }
-    }
+        });
 }
 
 void UCP_Attacks::BarrageMagicSpell(FAttackInfo& AttackInfo)
 {
-    CurrentAttackInfo = AttackInfo;
-
-    USkeletalMeshComponent* MeshComp = AttackBase(AttackInfo.AttackTarget);// 매쉬컴포넌트 받아오기
-    UAnimMontage* MontageToPlay = AttackInfo.Montage;
-
-    if (MeshComp && MontageToPlay)
-    {
-        UAnimInstance* AnimInstance = MeshComp->GetAnimInstance();
-        if (AnimInstance)
+    USkeletalMeshComponent* MeshComp = AttackBase(AttackInfo.AttackTarget);
+    // 그냥  NotifyName을 사용하면 람다 캡처가 불가능하므로 mutable 사용 나중에 삭제예정
+    ExecuteAttack_Internal(AttackInfo.Montage, "Fire", [this, MeshComp, AttackInfo](FName NotifyName)mutable
         {
-            float MontagePlayRate = 1.0f;
-            float MontageStartPosition = 0.0f;
-            FName MontageStartingSection; // Set if you have one
-
-            // Play the montage and check if played successfully
-            float MontageLength = AnimInstance->Montage_Play(MontageToPlay, MontagePlayRate, EMontagePlayReturnType::MontageLength, MontageStartPosition);
-            bool bPlayedSuccessfully = MontageLength > 0.f;
-
-            if (bPlayedSuccessfully)
+            if (MeshComp)
             {
-                // Optionally jump to a starting section
-                if (MontageStartingSection != NAME_None)
-                {
-                    AnimInstance->Montage_JumpToSection(MontageStartingSection, MontageToPlay);
-                }
-
-                // Bind the OnMontageEnded delegate
-                FOnMontageEnded OnMontageEndedDelegate;
-                OnMontageEndedDelegate.BindUObject(this, &UCP_Attacks::OnMontageCompleted_UseInterrupted);
-                AnimInstance->Montage_SetEndDelegate(OnMontageEndedDelegate, MontageToPlay);
-
-                // Bind to Notify Begin and End for additional actions
-                AnimInstance->OnPlayMontageNotifyBegin.RemoveDynamic(this, &UCP_Attacks::OnNotifyBeginReceived_BarrageMagicSpell);
-                AnimInstance->OnPlayMontageNotifyBegin.AddDynamic(this, &UCP_Attacks::OnNotifyBeginReceived_BarrageMagicSpell);
-
+                FVector SocketLocation = MeshComp->GetSocketLocation("RightHand");
+                FVector OwnerLocation = GetOwner()->GetActorLocation();
+                float RandomY = FMath::RandRange(-300.0f, 300.0f);
+                FVector TargetLocation = FVector(OwnerLocation.X, OwnerLocation.Y + RandomY, OwnerLocation.Z);
+                FRotator LookAtRotation = FRotationMatrix::MakeFromX(TargetLocation - SocketLocation).Rotator();
+                FTransform SpawnTransform(LookAtRotation, SocketLocation);
+                MagicSpell(SpawnTransform, AttackInfo.AttackTarget, AttackInfo.DamageInfo);
             }
-        }
-    }
+        });
 }
 
 void UCP_Attacks::OnProjectileHit(AActor* OtherActor, const FHitResult& Hit)
@@ -803,73 +616,6 @@ void UCP_Attacks::OnMontageBlendedOut(UAnimMontage* Montage, bool bInterrupted)
 }
 
 
-void UCP_Attacks::OnNotifyBeginReceived_GroundSmash(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointPayload)
-{
-    if (NotifyName == "Smash")
-    {
-        AOEDamage(CurrentRadius, CurrentAttackInfo.DamageInfo);
-    }
-}
-
-void UCP_Attacks::OnNotifyBeginReceived_PrimaryMeleeAttack(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointPayload)
-{
-    if (NotifyName == "Slash")
-    {
-        SphereTraceDamage(CurrentRadius, CurrentLength, CurrentAttackInfo.DamageInfo);
-    }
-}
-
-void UCP_Attacks::OnNotifyBeginReceived_LongRangeMeleeAttack(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointPayload)
-{
-    if (NotifyName == "Slash")
-        SphereTraceDamage(20.0f, 200.0f, CurrentAttackInfo.DamageInfo);
-    if (NotifyName == "Jump")
-        JumpToAttackTarget(CurrentAttackInfo.AttackTarget);
-}
-
-void UCP_Attacks::OnNotifyBeginReceived_SpinningMeleeAttack(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointPayload)
-{
-    if (NotifyName == "Slash")
-    {
-        SphereTraceDamage(20, 200, CurrentDamageInfo);
-    }
-    if (NotifyName == "AOESlash")
-    {
-        AOEDamage(300.0f, CurrentAttackInfo.DamageInfo);
-    }
-}
-void UCP_Attacks::OnNotifyBeginReceived_BasicMageSpell(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointPayload)
-{
-    if (NotifyName == "Fire")
-    {
-        FVector TempLocation;
-       TempLocation= CurrentMeshComponent->GetSocketLocation("RightHand");
-       FTransform TempTransform(FRotator::ZeroRotator, TempLocation, FVector(1.0f, 1.0f, 1.0f));
-
-        MagicSpell(TempTransform,CurrentAttackInfo.AttackTarget,CurrentAttackInfo.DamageInfo);//이부분에서 어떤 projectile class 를 쓸지 정해줘야한다.
-    }
-}
-void UCP_Attacks::OnNotifyBeginReceived_BarrageMagicSpell(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointPayload)
-{
-    if (NotifyName == "Fire")
-    {
-        FVector TempLocation;
-        TempLocation = CurrentMeshComponent->GetSocketLocation("RightHand");
-
-        AActor* Owner = GetOwner();
-        FVector ActorLocation = Owner->GetActorLocation();
-        float RandomY = FMath::RandRange(-300.0f, 300.0f);
-        FVector NewLocation = FVector(0.0f, RandomY, 0.0f);
-        FVector TargetLocation = ActorLocation + NewLocation;
-        FRotator LookAtRotation = FRotationMatrix::MakeFromX(TargetLocation - ActorLocation).Rotator();
-
-
-
-        FTransform TempTransform(LookAtRotation, TempLocation, FVector(1.0f, 1.0f, 1.0f));
-        MagicSpell(TempTransform, CurrentAttackInfo.AttackTarget, CurrentAttackInfo.DamageInfo);
-    }
-}
-
 void UCP_Attacks::OnInterrupted(bool binterruptible)
 {
     if (GetOwner())
@@ -905,13 +651,69 @@ void UCP_Attacks::OnMontageInterrupted(UAnimMontage* Montage, bool bInterrupted)
     }
 }
 
-void UCP_Attacks::PlayAttackMontage(UAnimMontage* MontageToPlay, const FName& NotifyName, TFunction<void()> DamageTraceCallback)
+void UCP_Attacks::ExecuteAttack_Internal(UAnimMontage* MontageToPlay, const FName& NotifyName, TFunction<void(FName)> NotifyCallback)
 {
+    ACharacter* OwnerCharacter = Cast<ACharacter>(GetOwner());
+    UAnimInstance* AnimInstance = OwnerCharacter ? OwnerCharacter->GetMesh()->GetAnimInstance() : nullptr;
+    if (!AnimInstance || !MontageToPlay || ActiveMontageInfoMap.Contains(MontageToPlay))
+    {
+        return;
+    }
+
+    const float MontageLength = AnimInstance->Montage_Play(MontageToPlay);
+    if (MontageLength > 0.f)
+    {
+        IDamageableInterface::Execute_SetIsInterruptible(GetOwner(), false);
+
+        FAttackMontageInfo Info;
+        Info.NotifyName = NotifyName;
+        Info.NotifyCallback = NotifyCallback;
+        ActiveMontageInfoMap.Add(MontageToPlay, Info);
+
+        FOnMontageEnded OnMontageEndedDelegate;
+        OnMontageEndedDelegate.BindUObject(this, &UCP_Attacks::OnAttackMontageEnded);
+        AnimInstance->Montage_SetEndDelegate(OnMontageEndedDelegate, MontageToPlay);
+    }
+}
+
+void UCP_Attacks::HandleMontageNotify(FName InNotifyName, const FBranchingPointNotifyPayload& BranchingPointPayload)
+{
+    USkeletalMeshComponent* MeshComp = BranchingPointPayload.SkelMeshComponent;
+    const int32 MontageInstanceID = BranchingPointPayload.MontageInstanceID;
+
+    if (MeshComp && MontageInstanceID != INDEX_NONE)
+    {
+        if (UAnimInstance* AnimInstance = MeshComp->GetAnimInstance())
+        {
+            if (FAnimMontageInstance* MontageInstance = AnimInstance->GetMontageInstanceForID(MontageInstanceID))
+            {
+                if (UAnimMontage* CurrentMontage = MontageInstance->Montage)
+                {
+                    if (FAttackMontageInfo* FoundInfo = ActiveMontageInfoMap.Find(CurrentMontage))
+                    {
+                        if (FoundInfo->NotifyName == NAME_None || InNotifyName == FoundInfo->NotifyName)
+                        {
+                            if (FoundInfo->NotifyCallback)
+                            {
+                                FoundInfo->NotifyCallback(InNotifyName);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 void UCP_Attacks::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
+    ActiveMontageInfoMap.Remove(Montage);
+    IDamageableInterface::Execute_SetIsInterruptible(GetOwner(), true);
 
+    if (GetOwner()->GetClass()->ImplementsInterface(UEnemyAIInterface::StaticClass()))
+    {
+        IEnemyAIInterface::Execute_AttackEnd(GetOwner(), nullptr); // Target 정보는 콜백에서 개별 처리 필요
+    }
 }
 
 

@@ -16,6 +16,22 @@
 
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAttackEnded);
+USTRUCT()
+struct FAttackMontageInfo
+{
+	GENERATED_USTRUCT_BODY()
+
+	// 이 몽타주가 반응해야 할 노티파이 이름. UPROPERTY로 안전하게 관리합니다.
+	UPROPERTY()
+	FName NotifyName;
+
+	// 노티파이가 울렸을 때 실행될 실제 로직.
+	// TFunction은 UPROPERTY가 될 수 없습니다.
+	TFunction<void(FName)> NotifyCallback;
+};
+
+
+
 
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
@@ -30,13 +46,14 @@ public:
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 public:	
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 	UFUNCTION()
-	TArray<AActor*> DamageAllNonTeamMembers(const TArray<FHitResult>& Hits, FDamageInfo& DamageInfo);
+	TArray<AActor*> DamageAllNonTeamMembers(const TArray<FHitResult>& Hits, const FDamageInfo& DamageInfo);
 
 	UFUNCTION()
 	AActor* DamageFirstNonTeamMembers(const TArray<FHitResult>& Hits, FDamageInfo& DamageInfo);
@@ -56,13 +73,13 @@ public:
 	void MagicSpell(FTransform& SpawnTransform, AActor* Target, FDamageInfo& DamageInfo);
 
 	UFUNCTION()
-	void AOEDamage(float Radius, FDamageInfo& DamageInfo);
+	void AOEDamage(float Radius, const FDamageInfo& DamageInfo);
 
 	UFUNCTION()
 	void AOEDamageActor(AActor* Actor);
 
 	UFUNCTION()
-	void SphereTraceDamage(float Length, float Radius, FDamageInfo& DamageInfo);
+	void SphereTraceDamage(float Length, float Radius, const FDamageInfo& DamageInfo);
 
 	UFUNCTION()
 	void JumpToAttackTarget(AActor* AttackTarget);
@@ -118,25 +135,6 @@ public:
 	UFUNCTION()
 	void OnMontageBlendedOut(UAnimMontage* Montage, bool bInterrupted);
 
-	UFUNCTION()
-	void OnNotifyBeginReceived_GroundSmash(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointPayload);
-
-	UFUNCTION()
-	void OnNotifyBeginReceived_PrimaryMeleeAttack(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointPayload);
-
-	UFUNCTION()
-	void OnNotifyBeginReceived_LongRangeMeleeAttack(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointPayload);
-
-	UFUNCTION()
-	void OnNotifyBeginReceived_SpinningMeleeAttack(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointPayload);
-
-	UFUNCTION()
-	void OnNotifyBeginReceived_BasicMageSpell(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointPayload);
-
-	UFUNCTION()
-	void OnNotifyBeginReceived_BarrageMagicSpell(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointPayload);
-
-
 
 	UFUNCTION()
 	void OnInterrupted(bool Interrupted);
@@ -175,7 +173,6 @@ protected:
 
 private:
 	
-	void PlayAttackMontage(UAnimMontage* MontageToPlay, const FName& NotifyName, TFunction<void()> DamageTraceCallback);
 
 
 	//----------------------------------------------------------------------------------------삭제대상
@@ -196,12 +193,6 @@ private:
 
 	//----------------------------------------------------------------------------------------New! 20250804
 
-	// 몽타주 재생 및 델리게이트 바인딩을 처리할 헬퍼 함수
-	void PlayAttackMontage(UAnimMontage* MontageToPlay, const FName& NotifyName, TFunction<void()> DamageTraceCallback);
-
-	// 여러 OnMontageCompleted 함수들을 하나로 통합한 공통 콜백 함수
-	UFUNCTION()
-	void OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 
 	// Notify 이름을 상수로 관리하여 오타를 방지하고 중앙에서 관리
 	const FName SlashNotifyName = FName("Slash");
@@ -209,5 +200,20 @@ private:
 	const FName JumpNotifyName = FName("Jump");
 	const FName FireNotifyName = FName("Fire");
 	const FName AOESlashNotifyName = FName("AOESlash");
+
+	//----------------------------------------------------------------------------------------New!
+	  //모든 몽타주 재생 로직을 처리하는 단일 내부 함수
+	void ExecuteAttack_Internal(UAnimMontage* MontageToPlay, const FName& NotifyName, TFunction<void(FName)> NotifyCallback);
+
+	//  현재 재생 중인 몽타주와 콜백 정보를 1:1로 매핑하는 TMap
+	TMap<UAnimMontage*, FAttackMontageInfo> ActiveMontageInfoMap;
+
+protected:
+	//공통 델리게이트 핸들러 (내부용)
+	UFUNCTION()
+	void HandleMontageNotify(FName InNotifyName, const FBranchingPointNotifyPayload& BranchingPointPayload);
+
+	UFUNCTION()
+	void OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 	
 };
