@@ -106,7 +106,7 @@ public:
 	FOnAttackEnded OnAttackEnd;
 
 
-	//------------------------------------------------MontageFunction----------
+	//------------------------------------------------MontageFunction---------- 삭제대상
 
 
 	UFUNCTION()
@@ -144,17 +144,30 @@ public:
 	UFUNCTION()
 	void OnMontageInterrupted(UAnimMontage* Montage, bool bInterrupted);
 
+	//----------------------------------------------------------------------------------------삭제대상
+
 protected:
 	//for Attack Info Matching
 	//Protect 에서 이걸 사용할까? 모르겠네
+
+
+
+
+	// 람다를 사용함으로써, 이제는 더이상 필요하지 않은 변수들
 	FAttackInfo CurrentAttackInfo;
 	FDamageInfo CurrentDamageInfo;
-
 	FDamageInfo AOECachedDamageInfo;
-
 
 	float CurrentRadius;
 	float CurrentLength;
+
+
+	//-----------------------------------------------------------------------------------------삭제대상
+
+
+
+
+
 	USkeletalMeshComponent* CurrentMeshComponent;//Current Mesh 임시저장소 but 임시로 써둔거고 나중에 Mapping 을 통해서 바꿔줄것
 
 
@@ -162,11 +175,15 @@ protected:
 
 private:
 	
+	void PlayAttackMontage(UAnimMontage* MontageToPlay, const FName& NotifyName, TFunction<void()> DamageTraceCallback);
 
+
+	//----------------------------------------------------------------------------------------삭제대상
 	AActor* CurrentAttackTarget;
 
 	ACharacter* CharacterRef;// 캐릭터 레퍼런스 받아오기 위해 선언
 
+	//----------------------------------------------------------------------------------------삭제대상
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Projectile", meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<AProjectileBase> ProjectileSpawnClass; //Projectilebullet 클래스
@@ -174,10 +191,23 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Projectile", meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<AAOEBase> AOEClass; //AOE 클래스
-
-
-
 	UPROPERTY()
 	TArray<AProjectileBase*> ActiveProjectiles;
-		
+
+	//----------------------------------------------------------------------------------------New! 20250804
+
+	// 몽타주 재생 및 델리게이트 바인딩을 처리할 헬퍼 함수
+	void PlayAttackMontage(UAnimMontage* MontageToPlay, const FName& NotifyName, TFunction<void()> DamageTraceCallback);
+
+	// 여러 OnMontageCompleted 함수들을 하나로 통합한 공통 콜백 함수
+	UFUNCTION()
+	void OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+
+	// Notify 이름을 상수로 관리하여 오타를 방지하고 중앙에서 관리
+	const FName SlashNotifyName = FName("Slash");
+	const FName SmashNotifyName = FName("Smash");
+	const FName JumpNotifyName = FName("Jump");
+	const FName FireNotifyName = FName("Fire");
+	const FName AOESlashNotifyName = FName("AOESlash");
+	
 };

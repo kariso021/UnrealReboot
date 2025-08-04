@@ -117,6 +117,10 @@ bool AEnemyBase::IsDead_Implementation()
 
 bool AEnemyBase::TakeDamage_Implementation(FDamageInfo& DamageInfo, AActor* DamageCauser)
 {
+	if (DamageInfo.CanBeBlocked)
+	{	
+		TryToBlock();	
+	}
 	return DamageSystemComponent->TakeDamageCPP(DamageInfo, DamageCauser);
 }
 
@@ -341,6 +345,16 @@ void AEnemyBase::HandleBlockedEvent(bool bCanBeParried, AActor* DamageCauser)
 
 	HoldBlockTimer.Invalidate();
 
+}
+
+void AEnemyBase::TryToBlock()
+{
+	//randomfloat이 필요해
+	float RandomValue = FMath::FRandRange(0.0f, 1.0f);
+	if (RandomValue < BlockChance)//0.5 정도로 잡음
+	{
+		StartBlock();
+	}
 }
 
 bool AEnemyBase::GetisWieldingWeapon()

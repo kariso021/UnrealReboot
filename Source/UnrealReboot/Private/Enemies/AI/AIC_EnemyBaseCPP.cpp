@@ -125,12 +125,6 @@ void AAIC_EnemyBaseCPP::OnUnPossess()
 void AAIC_EnemyBaseCPP::BeginPlay()
 {
 	Super::BeginPlay();
-
-	if (AIPerceptionComponent)
-	{
-		AIPerceptionComponent->OnPerceptionUpdated.AddDynamic(this, &AAIC_EnemyBaseCPP::OnPerceptionUpdated);//이미 언리얼에서 바인딩된것
-	}
-
 }
 
 void AAIC_EnemyBaseCPP::OnPerceptionUpdated(const TArray<AActor*>& UpdatedActors)//다수의 Actor로부터 감지
@@ -364,29 +358,43 @@ void AAIC_EnemyBaseCPP::HandleForgotActor(AActor* Actor)
 
 void AAIC_EnemyBaseCPP::HandleLostSight(AActor* Actor)
 {
-	if (AttackTarget == Actor)
+	// 잃어버린 액터가 현재 공격 대상이 아니라면 아무것도 하지 않음
+	if (AttackTarget != Actor)
 	{
-		
-		switch (GetCurrentState())
-		{
-		case EM_AIState::Attacking:
-		case EM_AIState::Frozen:
-		case EM_AIState::Investigating:
-		{
-			GetWorldTimerManager().ClearTimer(SeekAttackTargetTimer);
-			SeekAttackTargetTimer.Invalidate();
-
-
-			//일정 기간 탐색하다가 TimeToSeekAfterLosingSight 동안만 발동하고싶음
-			GetWorldTimerManager().SetTimer(SeekAttackTargetTimer, this, &AAIC_EnemyBaseCPP::SeekAttackTarget, TimeToSeekAfterLosingSight, false);
-		}
-		break; 
-		
-		default:
-			break;
-		}
+		return;
 	}
-	
+
+	// 블루프린트의 Switch 노드와 동일한 역할을 하는 C++ switch 문
+	switch (GetCurrentState())
+	{
+		// 이 상태들일 때만 타이머 로직을 실행
+	case EM_AIState::Attacking:
+	case EM_AIState::Frozen:
+	case EM_AIState::Investigating:
+	{
+		// 1. 기존 타이머가 있다면 정리 (Clear and Invalidate Timer by Handle)
+		GetWorldTimerManager().ClearTimer(SeekAttackTargetTimer);
+
+		// 2. 새로운 타이머 설정 (Set Timer by Event)
+		//    - 첫 인자로 핸들을 넘겨주면, 생성된 타이머 정보가 여기에 자동으로 저장
+		GetWorldTimerManager().SetTimer(
+			SeekAttackTargetTimer,                               // 타이머 핸들 (여기에 저장됨)
+			this,                                                // 함수를 호출할 오브젝트
+			&AAIC_EnemyBaseCPP::SeekAttackTarget,                // 호출될 함수 (Create Event)
+			TimeToSeekAfterLosingSight,                          // 지연 시간
+			false                                                // 반복 여부
+		);
+		break;
+	}
+	case EM_AIState::Passive:
+	case EM_AIState::Dead:
+	case EM_AIState::Seeking:
+	default:
+	{
+		// Do nothing
+		break;
+	}
+	}
 }
 
 void AAIC_EnemyBaseCPP::SetStateAsSeeking(FVector Location)
@@ -449,34 +457,49 @@ FCheckSensedStimulus AAIC_EnemyBaseCPP::CanSenseActor(AActor* Actor, EM_AISense 
 
 void AAIC_EnemyBaseCPP::SeekAttackTarget()
 {
-	SetStateAsSeeking(AttackTarget->GetActorLocation());
-	GetWorldTimerManager().ClearTimer(SeekAttackTargetTimer);
-	SeekAttackTargetTimer.Invalidate();
+		// [가장 중요] 타이머가 실행된 이 시점에 AttackTarget이 유효한지 다시 한번 확인합니다.
+		if (IsValid(AttackTarget))
+		{
+			// 유효하다면, Seeking 상태로 전환하고 타겟의 위치를 블랙보드에 저장합니다.
+			UE_LOG(LogTemp, Log, TEXT("SeekAttackTarget: Target '%s' is still valid. Setting state to Seeking."), *AttackTarget->GetName());
+			SetStateAsSeeking(AttackTarget->GetActorLocation());
+		}
+		else
+		{
+			// 타겟이 그 사이에 사라졌다면 (예: 죽거나, 너무 멀어지거나)
+			// 더 이상 수색할 의미가 없으므로 Passive 상태로 전환합니다.
+			UE_LOG(LogTemp, Warning, TEXT("SeekAttackTarget: Target is no longer valid. Setting state to Passive."));
+			SetStateAsPassive();
+		}
+
+		// 이 함수의 목적이었던 타이머는 더 이상 필요 없으므로 확실하게 정리합니다.
+		// Invalidate()는 필수는 아니지만, ClearTimer()는 확실히 호출해주는 것이 좋습니다.
+		GetWorldTimerManager().ClearTimer(SeekAttackTargetTimer);
 }
 
 void AAIC_EnemyBaseCPP::CheckForgottenSeenActor()
 {
+	//TArray::Contains는 내부적으로 선형 검색 그래서 for문 두번쓰기때문에 TSet을 사용하여 성능을 향상시킴 O(n^m) -> O(1)
 	TArray<AActor*> CurrentlyPerceivedActors;
 	AIPerceptionComponent->GetKnownPerceivedActors(UAISense_Sight::StaticClass(), CurrentlyPerceivedActors);
 
-	int32 NumCurrentlyPerceivedActors = CurrentlyPerceivedActors.Num();
-	int32 NumKnownSeenActors = KnownSeenActors.Num();
+	// 현재 인지된 액터들을 Set으로 만들어 빠른 조회를 가능하게 함
+	TSet<AActor*> PerceivedSet(CurrentlyPerceivedActors);
 
-
-	if (NumCurrentlyPerceivedActors != NumKnownSeenActors)
+	// 잊혀진 액터를 찾기 위해 이전 목록을 순회 (복사본 사용)
+	TArray<AActor*> ForgottenActors;
+	for (AActor* KnownActor : KnownSeenActors)
 	{
-		TArray<AActor*> currentPercieved;
-		AIPerceptionComponent->GetKnownPerceivedActors(UAISense_Sight::StaticClass(), currentPercieved);
-
-		// 잊혀진 액터들을 확인
-		for (AActor* KnownActor : KnownSeenActors)
+		if (!PerceivedSet.Contains(KnownActor))
 		{
-			if (!currentPercieved.Contains(KnownActor))//Find 함수의 내용과 비슷함
-			{
-				HandleForgottenActor(KnownActor);
-			}
+			ForgottenActors.Add(KnownActor);
 		}
-		//업데이트 부분 필요없어  KnownSeenActors = currentPercieved;->Handle에서 Remove로 지울거야
+	}
+
+	// 잊혀진 액터들에 대한 처리
+	for (AActor* ForgottenActor : ForgottenActors)
+	{
+		HandleForgottenActor(ForgottenActor);
 	}
 }
 

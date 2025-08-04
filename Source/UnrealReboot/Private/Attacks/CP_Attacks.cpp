@@ -74,7 +74,7 @@ TArray<AActor*> UCP_Attacks::DamageAllNonTeamMembers(const TArray<FHitResult>& H
             }
         }
     }
-    // 손상된 액터 목록 반환
+    // 데미지 입은 액터 목록 반환
     return ActorsDamagedSoFar;
 }
 
@@ -903,6 +903,15 @@ void UCP_Attacks::OnMontageInterrupted(UAnimMontage* Montage, bool bInterrupted)
             IDamageableInterface::Execute_SetIsInterruptible(GetOwner(), true);
         }
     }
+}
+
+void UCP_Attacks::PlayAttackMontage(UAnimMontage* MontageToPlay, const FName& NotifyName, TFunction<void()> DamageTraceCallback)
+{
+}
+
+void UCP_Attacks::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+
 }
 
 

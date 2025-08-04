@@ -56,14 +56,14 @@ float UDamageSystem::HealCPP(float Amount)
 
 bool UDamageSystem::TakeDamageCPP(const FDamageInfo& DamageInfo, AActor* DamageCauser)
 {
-	if (CanBeDamaged(DamageInfo.ShouldDamageInvincible, DamageInfo.CanBeBlocked) == 0)
+	if (CanBeDamaged(DamageInfo.ShouldDamageInvincible, DamageInfo.CanBeBlocked) == EDamageResult::Block)
 	{
 		//Block Damage
 		OnBlocked.Broadcast(DamageInfo.CanBeParried, DamageCauser);
 		return false;
 
 	}
-	else if (CanBeDamaged(DamageInfo.ShouldDamageInvincible, DamageInfo.CanBeBlocked) == 1)
+	else if (CanBeDamaged(DamageInfo.ShouldDamageInvincible, DamageInfo.CanBeBlocked) == EDamageResult::Damage)
 	{
 		//Do Damage
 		HealthCPP = HealthCPP - DamageInfo.Amount;
@@ -87,12 +87,12 @@ bool UDamageSystem::TakeDamageCPP(const FDamageInfo& DamageInfo, AActor* DamageC
 			}
 		}
 	}
-	else if (CanBeDamaged(DamageInfo.ShouldDamageInvincible, DamageInfo.CanBeBlocked) == 2)
+	else if (CanBeDamaged(DamageInfo.ShouldDamageInvincible, DamageInfo.CanBeBlocked) == EDamageResult::NoDamage)
 	{
 		//No Damage
 		return false;
 	}
-	return false; //CanBe Damaged 함수에 오류가 있을때 False 반환 0,1,2 중 그 어떤값도 반환하지 못했을때
+	return false; //CanBe Damaged 함수에 오류가 있을때 False 반환 EDasmageResult의 그 어떤값도 반환하지 못했을때
 }
 
 bool UDamageSystem::ReserveAttackTokenCPP(int Amount)
@@ -116,21 +116,23 @@ void UDamageSystem::SetAttackTokenCount(int token)
 	AttackTokensCountCPP = token;
 }
 
-int UDamageSystem::CanBeDamaged(bool IsInvincible, bool CanBeBlocked)
+EDamageResult UDamageSystem::CanBeDamaged(bool IsInvincible, bool CanBeBlocked)
 {
-	if ((!IsDeadCPP) && ((!IsInvincibleCPP) || IsInvincible))
+	if (!IsDeadCPP && (!IsInvincibleCPP || IsInvincible))
 	{
 		if (IsBlockingCPP && CanBeBlocked)
 		{
-			return 0;//BlockDamage
+			return EDamageResult::Block; // Blocked
 		}
 		else
 		{
-			return 1;//DoDamage
+			return EDamageResult::Damage; // Do Damage
 		}
 	}
 	else
-		return 2;//No Damage
+	{
+		return EDamageResult::NoDamage; // No Damage
+	}
 }
 
 bool UDamageSystem::GetIsDead()
@@ -172,3 +174,5 @@ void UDamageSystem::SetHealth(float current)
 {
 	HealthCPP = current;
 }
+
+

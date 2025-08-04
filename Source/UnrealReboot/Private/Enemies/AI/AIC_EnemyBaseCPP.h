@@ -126,6 +126,20 @@ protected:
 	void OnPerceptionUpdated(const TArray<AActor*>& UpdatedActors);
 
 
+	UPROPERTY(EditAnywhere, Category = "AI|Blackboard")
+	FName AttackTargetKeyName;
+	UPROPERTY(EditAnywhere, Category = "AI|Blackboard")
+	FName StateKeyName;
+	UPROPERTY(EditAnywhere, Category = "AI|Blackboard")
+	FName PointOfInterestKeyName;
+	UPROPERTY(EditAnywhere, Category = "AI|Blackboard")
+	FName AttackRadiusKeyName;
+	UPROPERTY(EditAnywhere, Category = "AI|Blackboard")
+	FName DefendRadiusKeyName;
+	UPROPERTY(EditAnywhere, Category = "AI|Blackboard")
+	FName DistanceToAttackTargetKeyName;
+
+
 private:
 	// Names
 	void InitializeSightConfig();
@@ -138,12 +152,6 @@ private:
 
 	bool MatchSenseType(const FAISenseID& StimulusType, EM_AISense SenseType) const;
 
-	FName AttackTargetKeyName;
-	FName StateKeyName;
-	FName PointOfInterestKeyName;
-	FName AttackRadiusKeyName;
-	FName DefendRadiusKeyName;
-	FName DistanceToAttackTargetKeyName;
 
 	// Actor
 	AActor* AttackTarget;
@@ -154,7 +162,8 @@ private:
 	FTimerHandle SeekAttackTargetTimer;
 
 	// Float
-	float TimeToSeekAfterLosingSight;
+	UPROPERTY(EditAnywhere, Category = "AI|Timers")
+	float TimeToSeekAfterLosingSight =3.0f;
 
 
 };

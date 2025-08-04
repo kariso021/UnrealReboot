@@ -750,9 +750,6 @@ void AMainPlayer::EnterRangedStance()
 
     StartAiming();
 
-
-
-
 }
 
 void AMainPlayer::Move(const FInputActionValue& Value)

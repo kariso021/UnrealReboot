@@ -7,6 +7,16 @@
 #include "DataOfDamage.h"
 #include "DamageSystem.generated.h"
 
+
+UENUM(BlueprintType)
+enum class EDamageResult : uint8
+{
+	Block        UMETA(DisplayName = "Blocked"),
+	Damage       UMETA(DisplayName = "Damaged"),
+	NoDamage     UMETA(DisplayName = "NoDamage"),
+};
+
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnBlockedDelegate, bool, bCanBeParried, AActor*, DamageCauser);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnDamageResponseDelegate, EM_DamageResponse, DamageResponse, AActor*, DamageCauser);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDeathDelegate);
@@ -44,7 +54,7 @@ public:
 	void SetAttackTokenCount(int token);
 
 	UFUNCTION()
-	int CanBeDamaged(bool IsInvincible, bool CanBeBlo);
+	EDamageResult CanBeDamaged(bool IsInvincible, bool CanBeBlo);
 
 	UFUNCTION()
 	bool GetIsDead();

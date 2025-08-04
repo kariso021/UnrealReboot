@@ -132,6 +132,9 @@ public:
     void HandleBlockedEvent(bool bCanBeParried, AActor* DamageCauser);
     //여기서 DAMAGESYSTEM Component 에서 생성한 Delegate 를 이용하는것
 
+    UFUNCTION()
+    void TryToBlock();
+
 
    
 
