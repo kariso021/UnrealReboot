@@ -209,7 +209,7 @@ private:
 	TMap<UAnimMontage*, FAttackMontageInfo> ActiveMontageInfoMap;
 
 protected:
-	//공통 델리게이트 핸들러 (내부용)
+	//공통 델리게이트 핸들러
 	UFUNCTION()
 	void HandleMontageNotify(FName InNotifyName, const FBranchingPointNotifyPayload& BranchingPointPayload);
 
